@@ -1,0 +1,1003 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard Gestor de Proyectos{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #4338CA;
+            --sidebar-width: 240px;
+            --header-height: 64px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1F2937;
+            background-color: #f8fafc;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-hidden {
+            transform: translateX(calc(-1 * var(--sidebar-width)));
+        }
+
+        .sidebar a {
+            color: #4B5563;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .sidebar a:hover, .sidebar a.active {
+            background-color: var(--primary-color);
+            color: #FFFFFF;
+        }
+
+        .sidebar a:hover i, .sidebar a.active i {
+            color: #FFFFFF;
+        }
+
+        .section-title {
+            color: #6B7280;
+            letter-spacing: 0.05em;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .content-expanded {
+            margin-left: 0;
+        }
+
+        /* Header */
+        .header {
+            height: var(--header-height);
+            background: #FFFFFF;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Cards */
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Tables */
+        .table-header {
+            background-color: #F3F4F6;
+            color: #4B5563;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table-row {
+            transition: background-color 0.2s ease;
+        }
+
+        .table-row:hover {
+            background-color: #F9FAFB;
+        }
+
+        /* Modals */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .modal-open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-open .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-lg .modal-content {
+            max-width: 800px;
+        }
+
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #111827;
+            color: #F9FAFB;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary-color);
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        .custom-input {
+            width: 100%;
+            padding-left: 2.25rem;
+            padding-right: 0.75rem;
+            padding-top: 0.375rem;
+            padding-bottom: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        /* Forms */
+        .form-input {
+            border-radius: 6px !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 9999px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 280px;
+            position: relative;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 50;
+            }
+
+            .sidebar-hidden {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Barra lateral -->
+        <div id="sidebar" class="sidebar fixed h-full z-40">
+            <div class="flex items-center h-16 px-6 border-b border-gray-100">
+                <a class="navbar-brand brand-logo me-5" href="#"><img src="{% static 'imagenes/milog.png' %}" class="me-2" alt="logo" /></a>
+            </div>
+            <nav class="px-4 py-4 space-y-1">
+                <a href="{% url 'home' %}" class="flex items-center py-2 px-4 {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                    <i class="fas fa-home mr-3 text-gray-400 w-5 text-center"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="{% url 'personal_dashboard' %}" class="flex items-center py-2 px-4 {% if request.resolver_match.url_name == 'personal_dashboard' %}active{% endif %}">
+                    <i class="fas fa-tasks mr-3 text-gray-400 w-5 text-center"></i>
+                    <span>Mis Tareas</span>
+                </a>
+                <a href="{% url 'meeting_chat' %}" class="flex items-center py-2 px-4 border-b {% if request.resolver_match.url_name == 'meeting_chat' %}active{% endif %}">
+                    <i class="fas fa-th-large mr-3 text-gray-400 w-5 text-center "></i>
+                    <span>Panel</span>
+                </a>
+
+                <div class="mt-6 px-2 ">
+                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 mt-2">Mis Proyectos</div>
+                    <div class="flex items-center space-x-2">
+                        <select id="proyecto-selector" class="form-input w-full text-sm py-1.5 px-3 border-2">
+                            <option value="">Seleccionar proyecto</option>
+                            {% for proyecto in request.user.proyectos_integrante.all %}
+                                <option value="{{ proyecto.id }}"
+                                        {% if proyecto.id == proyecto_actual.id %}selected{% endif %}>
+                                    {{ proyecto.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Opciones del proyecto (se muestran dinámicamente) -->
+                <div id="proyecto-options" class="mt-2 pl-2 space-y-1" style="display: {% if proyecto_actual %}block{% else %}none{% endif %};">
+                    <a href="#" id="tareas-link" class="flex items-center py-2 px-4 {% if 'tareas' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-tasks mr-3 text-gray-400 w-5 text-center"></i>
+                        <span>Tareas</span>
+                    </a>
+                    <a href="#" id="sprints-link" class="flex items-center py-2 px-4 {% if 'equipo' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-running mr-3 text-gray-400 w-5 text-center"></i>
+                        <span>Equipo</span>
+                    </a>
+                    <a href="#" id="bugs-link" class="flex items-center py-2 px-4 {% if 'bugs' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-bug mr-3 text-gray-400 w-5 text-center"></i>
+                        <span>Bugs</span>
+                    </a>
+
+                    <a href="#" id="documentos-link" class="flex items-center py-2 px-4 {% if 'documentos' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-file-alt mr-3 text-gray-400 w-5 text-center"></i>
+                        <span>Documentos</span>
+                    </a>
+                    <a href="" id="detalles-link" class="flex items-center py-2 px-4 {% if 'proyecto_detail' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-info-circle mr-3 text-gray-400 w-5 text-center"></i>
+                        <span>Detalles</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Contenido principal -->
+        <div id="main-content" class="main-content flex-1 flex flex-col overflow-hidden">
+            <!-- Barra superior -->
+            <header class="header flex items-center justify-between px-6">
+                <div class="flex items-center space-x-4">
+                    <button id="toggleSidebar" class="text-gray-500 hover:text-indigo-600 transition-colors">
+                        <i id="toggleIcon" class="fas fa-bars text-lg"></i>
+                    </button>
+                    <div class="relative w-64">
+                        <form method="get" action="">
+                            <input type="text" name="q" placeholder="Buscar..."
+                                   class="custom-input">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Botón para agregar -->
+                    <div class="relative">
+                        
+                        <button id="addButton" class="btn-primary px-4 py-1.5 text-white rounded-full text-sm flex items-center space-x-1">
+                            <i class="fas fa-plus text-sm"></i>
+                            <span>Agregar</span>
+                        </button>
+                        {% if request.user.rol == 'jefe_proyectos' %}
+                        <!-- Menú desplegable -->
+                        <div id="dropdownMenu" class="absolute hidden bg-white shadow-lg rounded-md mt-2 right-0 w-48 z-50 border border-gray-200">
+                            <a href="#" id="openProyectoModal" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Nuevo Proyecto</a>
+                        </div>
+                            {% else %}
+                            <div id="dropdownMenu" class="absolute hidden bg-white shadow-lg rounded-md mt-2 right-0 w-48 z-50 border border-gray-200">
+                            <a href="#" id="openProyectoModal" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">No tienes permiso para esta accion</a>
+                        </div>
+                            
+                        {% endif %}
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="hidden md:flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
+                        <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
+                        <span>{% now "j F Y" %}</span>
+                    </div>
+
+                    <!-- Notificaciones -->
+                    <div class="relative">
+                        <button id="notificationButton" class="text-gray-500 hover:text-indigo-600 relative transition-colors">
+                            <i class="fas fa-bell text-lg"></i>
+                            {% if notificaciones_no_leidas %}
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                {{ notificaciones_no_leidas.count }}
+                            </span>
+                            {% endif %}
+                        </button>
+                    </div>
+
+                    <!-- Perfil -->
+                    <div class="relative">
+                        <button id="profileButton" class="flex items-center space-x-2">
+                            <img src="{% if request.user.imagen_perfil %}{{ request.user.imagen_perfil.url }}{% else %}{% static 'imagenes/user.jpg' %}{% endif %}"
+                                 alt="Usuario" class="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm">
+                            <span class="hidden md:inline text-sm font-medium text-gray-700">{{ request.user.get_short_name|default:request.user.username }}</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Floating Buttons -->
+            <div class="fixed bottom-6 right-6 space-y-3 z-50">
+                <div class="tooltip">
+                    <a class="bg-white p-2 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" href="https://calendar.google.com" target="_blank">
+                        <img alt="Google Calendar" class="h-6 w-6" src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"/>
+                    </a>
+                    <span class="tooltiptext">Google Calendar</span>
+                </div>
+                <div class="tooltip">
+                    <a class="bg-white p-2 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" href="https://meet.google.com" target="_blank">
+                        <img alt="Google Meet" class="h-6 w-6" src="https://upload.wikimedia.org/wikipedia/commons/9/9b/Google_Meet_icon_%282020%29.svg"/>
+                    </a>
+                    <span class="tooltiptext">Google Meet</span>
+                </div>
+                <div class="tooltip">
+                    <a class="bg-white p-2 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" href="https://github.com" target="_blank">
+                        <img alt="GitHub" class="h-6 w-6" src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg"/>
+                    </a>
+                    <span class="tooltiptext">GitHub</span>
+                </div>
+            </div>
+
+            <!-- Mensajes -->
+            {% if messages %}
+            <div class="container mx-auto px-6 pt-4">
+                {% for message in messages %}
+                <div class="alert fade-in mb-3 p-3 rounded-md flex justify-between items-center
+                    {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200
+                    {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+                    {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+                    {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                    <span class="text-sm">{{ message }}</span>
+                    <button type="button" class="close text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Modal para crear proyecto -->
+            <div id="proyectoModal" class="modal">
+                <div class="modal-content">
+                    <div class="flex justify-between items-center p-4 border-b">
+                        <h2 class="text-lg font-semibold text-gray-800">Crear Nuevo Proyecto</h2>
+                        <button id="closeProyectoModal" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form method="post" action="{% url 'proyecto_create' %}" class="p-6">
+                        {% csrf_token %}
+                        <div class="space-y-4">
+                            <!-- Campo Nombre -->
+                            <div>
+                                <label for="id_nombre" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre del Proyecto
+                                </label>
+                                <input type="text" name="nombre" id="id_nombre" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    placeholder="Ingrese el nombre del proyecto">
+                            </div>
+
+                            <!-- Campo Descripción -->
+                            <div>
+                                <label for="id_descripcion" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Descripción
+                                </label>
+                                <textarea name="descripcion" id="id_descripcion" rows="3"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    placeholder="Describa el propósito del proyecto"></textarea>
+                            </div>
+
+                            <!-- Campo Responsable -->
+                            <div>
+                                <label for="{{ proyecto_form.responsable.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Responsable
+                                </label>
+                                <select name="{{ proyecto_form.responsable.name }}" id="{{ proyecto_form.responsable.id_for_label }}"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    {% for choice in proyecto_form.responsable.field.choices %}
+                                        <option value="{{ choice.0 }}" {% if choice.0 == proyecto_form.responsable.value %}selected{% endif %}>
+                                            {{ choice.1 }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" id="cancelProyectoModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium transition-colors">
+                                Crear Proyecto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal de Notificaciones -->
+            <div id="notificationModal" class="modal">
+                <div class="modal-content">
+                    <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                        <h2 class="text-base font-semibold text-gray-800">Notificaciones</h2>
+                        <a href="" class="text-xs text-indigo-600 hover:text-indigo-800">Marcar todas como leídas</a>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto divide-y divide-gray-200">
+                        {% if notificaciones_no_leidas or notificaciones_leidas %}
+                            {% for notificacion in notificaciones_no_leidas %}
+                            <div class="p-4 bg-blue-50/50">
+                                <p class="text-sm text-gray-800">{{ notificacion.mensaje }}</p>
+                                <div class="flex justify-between items-center mt-2">
+                                    <span class="text-xs text-gray-500">{{ notificacion.fecha|timesince }}</span>
+                                    <a href="{% url 'marcar_leida' notificacion.id %}" class="text-xs text-indigo-600 hover:text-indigo-800">Marcar como leída</a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% for notificacion in notificaciones_leidas %}
+                            <div class="p-4">
+                                <p class="text-sm text-gray-600">{{ notificacion.mensaje }}</p>
+                                <span class="text-xs text-gray-400 mt-1 block">{{ notificacion.fecha|timesince }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-6 text-center text-gray-500">
+                                <i class="far fa-bell text-2xl mb-2"></i>
+                                <p>No tienes notificaciones</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-3 border-t text-center bg-gray-50">
+                        <a href="" class="text-xs text-indigo-600 hover:text-indigo-800">Ver todas las notificaciones</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Perfil -->
+            <div id="profileModal" class="modal">
+                <div class="modal-content">
+                    <div class="p-4 border-b bg-gray-50 flex items-center space-x-3">
+                        <img src="{% if request.user.imagen_perfil %}{{ request.user.imagen_perfil.url }}{% else %}{% static 'imagenes/user.jpg' %}{% endif %}"
+                             alt="Usuario" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm">
+                        <div>
+                            <h2 class="font-semibold text-gray-800">{{ request.user.get_full_name|default:request.user.username }}</h2>
+                            <p class="text-xs text-gray-600">{{ request.user.get_rol_display }}</p>
+                        </div>
+                    </div>
+                    <div class="p-2">
+                        <button id="openProfileView" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded mx-1 flex items-center">
+                            <i class="fas fa-user-circle mr-2 text-gray-500 w-5 text-center"></i> Mi perfil
+                        </button>
+                        <button id="openHelpModal" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded mx-1 flex items-center">
+                            <i class="fas fa-question-circle mr-2 text-gray-500 w-5 text-center"></i> Ayuda
+                        </button>
+                        <div class="border-t my-1"></div>
+                       <a href="{% url 'logout' %}" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded mx-1 flex items-center">
+    <i class="fas fa-sign-out-alt mr-2 text-gray-500 w-5 text-center"></i> Cerrar sesión
+</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Perfil Completo -->
+            <!-- Modal de Perfil Completo -->
+<div id="profileViewModal" class="modal">
+    <div class="modal-content">
+        <div class="flex justify-between items-center p-4 border-b">
+            <h2 class="text-lg font-semibold text-gray-800">Mi Perfil</h2>
+            <button id="closeProfileViewModal" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="perfilForm" enctype="multipart/form-data" class="p-6">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <!-- Foto de perfil -->
+                <div class="flex flex-col items-center">
+                    <div class="relative mb-4">
+                        <img id="profileImagePreview" src="{% if request.user.imagen_perfil %}{{ request.user.imagen_perfil.url }}{% else %}{% static 'imagenes/user.jpg' %}{% endif %}"
+                             class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 shadow-sm">
+                        <label for="id_imagen_perfil" class="absolute bottom-0 right-0 bg-white p-1 rounded-full shadow-md cursor-pointer">
+                            <i class="fas fa-camera text-gray-600"></i>
+                        </label>
+                        <input type="file" name="imagen_perfil" id="id_imagen_perfil" class="hidden" accept="image/*">
+                    </div>
+                </div>
+
+                <!-- Campos del formulario -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                    <input type="text" name="first_name" value="{{ request.user.first_name }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+                    <input type="text" name="last_name" value="{{ request.user.last_name }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                    <input type="email" name="email" value="{{ request.user.email }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                <!-- Mostrar rol (solo lectura) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                    <input type="text" value="{{ request.user.get_rol_display }}" readonly
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm">
+                </div>
+            </div>
+
+            <div id="formMessages" class="hidden mb-4 p-3 rounded"></div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancelProfileViewModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium transition-colors">
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+            <!-- Modal de Ayuda -->
+            <div id="helpModal" class="modal">
+                <div class="modal-content modal-lg">
+                    <div class="flex justify-between items-center p-4 border-b">
+                        <h2 class="text-lg font-semibold text-gray-800">Ayuda del Sistema</h2>
+                        <button id="closeHelpModal" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="p-6 max-h-[70vh] overflow-y-auto">
+                        <div class="prose max-w-none">
+                            <h3 class="text-lg font-medium text-gray-900 mb-3">Funcionalidades principales</h3>
+
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-tasks mr-2 text-indigo-500"></i> Gestión de Proyectos
+                                </h4>
+                                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                    <li>Crear y administrar múltiples proyectos</li>
+                                    <li>Asignar responsables y miembros del equipo</li>
+                                    <li>Seguimiento del progreso con gráficos</li>
+                                </ul>
+                            </div>
+
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-list-check mr-2 text-indigo-500"></i> Gestión de Tareas
+                                </h4>
+                                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                    <li>Crear tareas con diferentes estados (Pendiente, En Progreso, Completada)</li>
+                                    <li>Asignar tareas a miembros del equipo</li>
+                                    <li>Establecer fechas límite y prioridades</li>
+                                </ul>
+                            </div>
+
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-users mr-2 text-indigo-500"></i> Gestión de Equipo
+                                </h4>
+                                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                    <li>Agregar y administrar miembros del equipo</li>
+                                    <li>Asignar roles y permisos</li>
+                                    <li>Visualizar carga de trabajo por miembro</li>
+                                </ul>
+                            </div>
+
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-file-alt mr-2 text-indigo-500"></i> Documentación
+                                </h4>
+                                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                    <li>Subir y compartir documentos</li>
+                                    <li>Organizar por categorías</li>
+                                    <li>Control de versiones</li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-blue-50 p-4 rounded-md border border-blue-100">
+                                <h4 class="font-medium text-blue-800 mb-2 flex items-center">
+                                    <i class="fas fa-headset mr-2 text-blue-500"></i> Soporte Técnico
+                                </h4>
+                                <p class="text-sm text-blue-700 mb-2">Para problemas técnicos o preguntas adicionales:</p>
+                                <ul class="text-sm text-blue-700 space-y-1">
+                                    <li><i class="fas fa-envelope mr-2"></i> workdgv@gmail.com</li>
+                                    <li><i class="fas fa-phone mr-2"></i> +53 50226869</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t text-center bg-gray-50">
+                        <button id="closeHelpModalBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium transition-colors">
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque para contenido específico -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="container mx-auto px-4 py-1">
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Clase para manejar modales
+        class Modal {
+            constructor(modalId) {
+                this.modal = document.getElementById(modalId);
+                this.isOpen = false;
+
+                // Cerrar modal al hacer clic fuera del contenido
+                this.modal.addEventListener('click', (e) => {
+                    if (e.target === this.modal) {
+                        this.close();
+                    }
+                });
+
+                // Cerrar modal con ESC
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) {
+                        this.close();
+                    }
+                });
+            }
+
+            open() {
+                this.modal.classList.add('modal-open');
+                document.body.style.overflow = 'hidden';
+                this.isOpen = true;
+            }
+
+            close() {
+                this.modal.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                this.isOpen = false;
+            }
+
+            toggle() {
+                if (this.isOpen) {
+                    this.close();
+                } else {
+                    this.open();
+                }
+            }
+        }
+
+        // Inicializar todas las modales
+        const modals = {
+            proyecto: new Modal('proyectoModal'),
+            notification: new Modal('notificationModal'),
+            profile: new Modal('profileModal'),
+            profileView: new Modal('profileViewModal'),
+            help: new Modal('helpModal')
+        };
+
+        // Event listeners para abrir/cerrar modales
+        document.getElementById('openProyectoModal').addEventListener('click', (e) => {
+            e.preventDefault();
+            modals.proyecto.open();
+            document.getElementById('dropdownMenu').classList.add('hidden');
+        });
+
+        document.getElementById('closeProyectoModal').addEventListener('click', () => modals.proyecto.close());
+        document.getElementById('cancelProyectoModal').addEventListener('click', () => modals.proyecto.close());
+
+        document.getElementById('notificationButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            modals.notification.toggle();
+            modals.profile.close();
+        });
+
+        document.getElementById('profileButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            modals.profile.toggle();
+            modals.notification.close();
+        });
+
+        document.getElementById('openProfileView').addEventListener('click', (e) => {
+            e.preventDefault();
+            modals.profile.close();
+            modals.profileView.open();
+        });
+
+        document.getElementById('closeProfileViewModal').addEventListener('click', () => modals.profileView.close());
+        document.getElementById('cancelProfileViewModal').addEventListener('click', () => modals.profileView.close());
+
+        document.getElementById('openHelpModal').addEventListener('click', (e) => {
+            e.preventDefault();
+            modals.profile.close();
+            modals.help.open();
+        });
+
+        document.getElementById('closeHelpModal').addEventListener('click', () => modals.help.close());
+        document.getElementById('closeHelpModalBtn').addEventListener('click', () => modals.help.close());
+
+        // Mostrar/ocultar la barra lateral
+        document.getElementById('toggleSidebar').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            sidebar.classList.toggle('sidebar-hidden');
+            mainContent.classList.toggle('content-expanded');
+
+            // Guardar preferencia en localStorage
+            const isHidden = sidebar.classList.contains('sidebar-hidden');
+            localStorage.setItem('sidebarHidden', isHidden);
+        });
+
+        // Función para actualizar los enlaces del proyecto
+        function updateProyectoLinks(proyectoId) {
+            document.getElementById('tareas-link').href = `/api/proyecto/${proyectoId}/tareas/`;
+            document.getElementById('sprints-link').href = `/proyectos/${proyectoId}/equipo/`;
+            document.getElementById('bugs-link').href = `/proyectos/${proyectoId}/bugs/`;
+            document.getElementById('documentos-link').href = `/proyecto/${proyectoId}/documentos/`;
+            document.getElementById('detalles-link').href = `/proyecto/${proyectoId}/`;
+        }
+
+        // Función para inicializar el selector de proyectos
+        function initProyectoSelector() {
+            const proyectoSelector = document.getElementById('proyecto-selector');
+            const proyectoOptions = document.getElementById('proyecto-options');
+
+            // Cargar proyecto seleccionado de localStorage
+            const proyectoSeleccionado = localStorage.getItem('proyectoSeleccionado');
+
+            if (proyectoSeleccionado) {
+                // Establecer el valor en el selector si existe
+                const optionExists = Array.from(proyectoSelector.options).some(opt => opt.value === proyectoSeleccionado);
+                if (optionExists) {
+                    proyectoSelector.value = proyectoSeleccionado;
+
+                    // Mostrar opciones del proyecto
+                    proyectoOptions.style.display = 'block';
+
+                    // Actualizar enlaces del proyecto
+                    updateProyectoLinks(proyectoSeleccionado);
+                } else {
+                    // Si el proyecto guardado ya no existe, limpiar localStorage
+                    localStorage.removeItem('proyectoSeleccionado');
+                }
+            }
+
+            // Manejar cambio de selección
+            proyectoSelector.addEventListener('change', function() {
+                const proyectoId = this.value;
+
+                if (proyectoId) {
+                    // Guardar en localStorage
+                    localStorage.setItem('proyectoSeleccionado', proyectoId);
+
+                    // Mostrar opciones del proyecto
+                    proyectoOptions.style.display = 'block';
+
+                    // Actualizar enlaces del proyecto
+                    updateProyectoLinks(proyectoId);
+
+                    // Redirigir a la página de tareas del proyecto
+                    window.location.href = `/api/proyecto/${proyectoId}/tareas/`;
+                } else {
+                    // Ocultar opciones si no hay proyecto seleccionado
+                    proyectoOptions.style.display = 'none';
+                    localStorage.removeItem('proyectoSeleccionado');
+                }
+            });
+        }
+
+        // Mostrar/ocultar menú desplegable de agregar
+        document.getElementById('addButton').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('dropdownMenu').classList.toggle('hidden');
+        });
+
+        // Cerrar menú desplegable al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            if (!e.target.closest('#addButton') && !e.target.closest('#dropdownMenu')) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        // Cerrar mensajes flash
+        document.querySelectorAll('.close').forEach(button => {
+            button.addEventListener('click', function() {
+                this.closest('.alert').style.opacity = '0';
+                setTimeout(() => {
+                    this.closest('.alert').remove();
+                }, 300);
+            });
+        });
+
+        // Previsualización de imagen de perfil
+        document.getElementById('id_imagen_perfil').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('profileImagePreview').src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+// Previsualización de imagen de perfil
+document.getElementById('id_imagen_perfil').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById('profileImagePreview').src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Manejar el envío del formulario de perfil con AJAX
+document.getElementById('perfilForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const messagesDiv = document.getElementById('formMessages');
+
+    fetch("{% url 'actualizar_perfil' %}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        messagesDiv.classList.remove('hidden');
+
+        if (data.success) {
+            messagesDiv.className = 'bg-green-50 text-green-800 border border-green-200 p-3 rounded mb-4';
+            messagesDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>' + data.message;
+
+            // Actualizar la imagen en el navbar si cambió
+            if (data.imagen_url) {
+                const profileImages = document.querySelectorAll('.profile-image');
+                profileImages.forEach(img => {
+                    img.src = data.imagen_url;
+                });
+            }
+
+            // Cerrar el modal después de 2 segundos
+            setTimeout(() => {
+                modals.profileView.close();
+                messagesDiv.classList.add('hidden');
+            }, 2000);
+        } else {
+            messagesDiv.className = 'bg-red-50 text-red-800 border border-red-200 p-3 rounded mb-4';
+
+            if (data.errors) {
+                const errors = JSON.parse(data.errors);
+                let errorMessages = '<ul class="list-disc pl-5">';
+                for (const field in errors) {
+                    errors[field].forEach(error => {
+                        errorMessages += `<li>${error}</li>`;
+                    });
+                }
+                errorMessages += '</ul>';
+                messagesDiv.innerHTML = errorMessages;
+            } else {
+                messagesDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>' + (data.message || 'Error al actualizar el perfil');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        messagesDiv.classList.remove('hidden');
+        messagesDiv.className = 'bg-red-50 text-red-800 border border-red-200 p-3 rounded mb-4';
+        messagesDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Error de conexión';
+    });
+});
+
+// Actualizar el modal de perfil cuando se abre
+document.getElementById('openProfileView').addEventListener('click', function(e) {
+    e.preventDefault();
+    modals.profile.close();
+    modals.profileView.open();
+
+    // Resetear mensajes
+    document.getElementById('formMessages').classList.add('hidden');
+
+    // Actualizar la imagen de previsualización
+    const profileImg = document.getElementById('profileImagePreview');
+    profileImg.src = "{% if request.user.imagen_perfil %}{{ request.user.imagen_perfil.url }}{% else %}{% static 'imagenes/user.jpg' %}{% endif %}";
+});
+
+        // Cargar estado inicial al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Barra lateral
+            const isHidden = localStorage.getItem('sidebarHidden') === 'true';
+            if (isHidden) {
+                document.getElementById('sidebar').classList.add('sidebar-hidden');
+                document.getElementById('main-content').classList.add('content-expanded');
+            }
+
+            // Selector de proyectos
+            initProyectoSelector();
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

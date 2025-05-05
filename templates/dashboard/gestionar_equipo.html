@@ -1,0 +1,351 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-2">
+    <!-- Encabezado de página -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div>
+            <h1 class="text-xl font-semibold text-gray-800">{{ proyecto.nombre }} - Gestión de Equipo</h1>
+        </div>
+        <a href="#" class="btn btn-outline-secondary mt-4 md:mt-0 inline-flex items-center">
+            <i class="fas fa-chevron-left mr-2 text-sm"></i>
+            Volver al Proyecto
+        </a>
+    </div>
+
+    <!-- Cuadrícula principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Sección de Equipo Actual -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-white">Equipo Actual</h2>
+                    <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                        {{ integrantes|length|add:1 }} miembros
+                    </span>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Miembro</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Especialidad</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Líder del Proyecto -->
+                            <tr class="bg-blue-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <span class="text-blue-600 font-medium">
+                                                {{ responsable.get_full_name|default:responsable.username|slice:"1" }}
+                                            </span>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                {{ responsable.get_full_name|default:responsable.username }}
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                {{ responsable.email }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ responsable.get_rol_display }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ responsable.especialidad|default:"General" }}
+                                    </span>
+                                </td>
+                            </tr>
+
+                            <!-- Miembros del Equipo -->
+                            {% for integrante in integrantes %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                            <span class="text-gray-600 font-medium">
+                                                {{ integrante.get_full_name|default:integrante.username|slice:"1" }}
+                                            </span>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                {{ integrante.get_full_name|default:integrante.username }}
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                {{ integrante.email }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ integrante.get_rol_display }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        {{ integrante.especialidad|default:"General" }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-gray-500">
+                                    No hay otros miembros en el equipo
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    {% if not request.user.rol == 'desarrollador' %}
+                <!-- Sección para Eliminar Miembros -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-red-600 to-red-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">Eliminar Miembros</h2>
+            </div>
+            <div class="p-5">
+                <form method="post" id="removerForm">
+                    {% csrf_token %}
+                    {{ remover_form.non_field_errors }}
+
+                    {% if remover_form.integrantes.field.queryset.exists %}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Seleccione miembros a eliminar:
+                            </label>
+                            {{ remover_form.integrantes }}
+                            <p class="mt-1 text-xs text-gray-500">
+                                Nota: El líder del proyecto no puede ser eliminado desde esta interfaz
+                            </p>
+                        </div>
+                        <button type="submit" name="remover_integrantes" class="btn btn-danger w-full inline-flex items-center justify-center">
+                            <i class="fas fa-user-minus mr-2"></i>
+                            Eliminar Miembros Seleccionados
+                        </button>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-user-slash text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500">No hay miembros disponibles para eliminar</p>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Sección para Agregar Miembros -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-600 to-green-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">Agregar Miembros</h2>
+            </div>
+            <div class="p-5">
+                <form method="post" id="agregarForm">
+                    {% csrf_token %}
+                    {{ agregar_form.non_field_errors }}
+
+                    {% if agregar_form.integrantes.field.queryset.exists %}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Seleccione usuarios para agregar:
+                            </label>
+                            {{ agregar_form.integrantes }}
+                            <p class="mt-1 text-xs text-gray-500">
+                                Solo se muestran usuarios con especialidades compatibles
+                            </p>
+                        </div>
+                        <button type="submit" name="agregar_integrantes" class="btn btn-primary w-full inline-flex items-center justify-center">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Agregar Usuarios Seleccionados
+                        </button>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-users text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500">Todos los usuarios disponibles ya están en el equipo</p>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Sección de Usuarios Disponibles -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-white">Usuarios Disponibles</h2>
+                    <span class="bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">
+                        {{ no_integrantes|length }} disponibles
+                    </span>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Especialidad</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for usuario in no_integrantes %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                            <span class="text-gray-600 font-medium">
+                                                {{ usuario.get_full_name|default:usuario.username|slice:"1" }}
+                                            </span>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                {{ usuario.get_full_name|default:usuario.username }}
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                {{ usuario.email }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ usuario.get_rol_display }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                        {{ usuario.especialidad|default:"General" }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-gray-500">
+                                    No hay usuarios disponibles que cumplan los requisitos
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Select2 para controles de selección mejorados -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Inicializar Select2 con estilos personalizados
+    $('select').select2({
+        placeholder: "Seleccione usuarios...",
+        width: '100%',
+        theme: 'bootstrap4',
+        dropdownParent: $('select').parent(),
+        closeOnSelect: false,
+        allowClear: true,
+        language: {
+            noResults: function() {
+                return "No se encontraron resultados";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        }
+    });
+
+    // Confirmación para eliminar miembros
+    $('#removerForm').submit(function(e) {
+        const seleccionados = $('#id_integrantes').val();
+        if (seleccionados && seleccionados.length > 0) {
+            return confirm(`¿Está seguro que desea eliminar ${seleccionados.length} miembro(s) del proyecto?`);
+        }
+        return false;
+    });
+
+    // Añadir animaciones sutiles
+    $('tr').hover(
+        function() {
+            $(this).addClass('shadow-xs');
+        },
+        function() {
+            $(this).removeClass('shadow-xs');
+        }
+    );
+
+    // Añadir estado de carga a los botones
+    $('form').submit(function() {
+        $(this).find('button[type="submit"]').html(
+            '<i class="fas fa-circle-notch fa-spin mr-2"></i> Procesando...'
+        ).prop('disabled', true);
+    });
+});
+</script>
+
+<style>
+/* Mejoras personalizadas */
+.select2-container--bootstrap4 .select2-selection--multiple {
+    min-height: 38px;
+    padding-bottom: 5px;
+}
+
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice {
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 0 8px;
+    margin-top: 5px;
+}
+
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove {
+    color: #9ca3af;
+    margin-right: 4px;
+}
+
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #6b7280;
+}
+
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.shadow-xs {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+/* Estilos para los avatares */
+.avatar-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+</style>
+{% endblock %}

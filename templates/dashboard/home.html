@@ -1,0 +1,235 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+<main class="px-6 py-4 pb-8 font-sans">
+    <!-- Estilos personalizados -->
+    <style>
+        .card {
+            transition: all 0.2s ease;
+            min-height: 120px;
+        }
+
+        .priority-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+    </style>
+
+    <!-- Encabezado -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Dashboard Personal</h1>
+        <p class="text-sm text-gray-600 mt-1">Bienvenido, {{ request.user.get_full_name|default:request.user.username }}</p>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+        <!-- Proyectos Activos -->
+        <div class="bg-blue-600 p-5 rounded-xl shadow-sm card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-medium text-white">Proyectos Activos</h3>
+                    <p class="text-2xl font-semibold text-white mt-1">{{ active_projects_count }}</p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Tareas Pendientes -->
+        <div class="bg-purple-600 p-5 rounded-xl shadow-sm card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-medium text-white">Tareas Pendientes</h3>
+                    <p class="text-2xl font-semibold text-white mt-1">{{ pending_tasks_count }}</p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Progreso General -->
+        <div class="bg-green-600 p-5 rounded-xl shadow-sm card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-medium text-white">Progreso Total</h3>
+                    <p class="text-2xl font-semibold text-white mt-1">{{ completion_percentage|floatformat:0 }}%</p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Tareas para Hoy -->
+        <div class="bg-red-600 p-5 rounded-xl shadow-sm card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-medium text-white">Tareas para Hoy</h3>
+                    <p class="text-2xl font-semibold text-white mt-1">{{ today_tasks_count }}</p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección Principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tareas Pendientes del Usuario -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Tus Tareas Pendientes</h2>
+                {% if proyectos.first %}
+                <a href="{% url 'api_tareas_proyecto' proyecto_id=proyectos.first.id %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    Ver todas →
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="space-y-4">
+                {% for tarea in user_pending_tasks %}
+                <div class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-800">{{ tarea.titulo }}</h3>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Proyecto: {{ tarea.proyecto.nombre }}
+                                {% if tarea.fecha_tope %}
+                                · Vence: {{ tarea.fecha_tope|date:"d M Y" }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="priority-badge {% if tarea.prioridad == 'alta' %}bg-red-100 text-red-800{% elif tarea.prioridad == 'media' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ tarea.get_prioridad_display }}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-4 text-center text-gray-500">
+                    ¡No tienes tareas pendientes!
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Últimas Notificaciones -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Actividad Reciente</h2>
+                <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">
+                    Ver todo →
+                </a>
+            </div>
+
+            <div class="space-y-4">
+                {% for comentario in notifications %}
+                <div class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <span class="inline-block h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                                {{ comentario.usuario.first_name|first|default:"?" }}
+                            </span>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">{{ comentario.usuario.get_full_name }}</p>
+                            <p class="text-sm text-gray-600">{{ comentario.contenido|truncatechars:40 }}</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                {{ comentario.fecha_creacion|date:"d M Y H:i" }} · {{ comentario.tarea.titulo }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-4 text-center text-gray-500">
+                    No hay actividad reciente
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <!-- Estado de Proyectos -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Distribución de Proyectos</h2>
+            <div class="chart-container">
+                <canvas id="projectStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Progreso de Tareas -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Progreso Mensual de Tareas</h2>
+            <div class="chart-container">
+                <canvas id="taskProgressChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Inicializar gráficos cuando el DOM esté cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gráfico de estado de proyectos
+            new Chart(document.getElementById('projectStatusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: JSON.parse('{{ project_status_labels|escapejs }}'),
+                    datasets: [{
+                        data: JSON.parse('{{ project_status_values|escapejs }}'),
+                        backgroundColor: ['#3B82F6', '#10B981', '#EF4444', '#F59E0B']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { enabled: true }
+                    }
+                }
+            });
+
+            // Gráfico de progreso de tareas
+            new Chart(document.getElementById('taskProgressChart'), {
+                type: 'bar',
+                data: {
+                    labels: JSON.parse('{{ monthly_tasks_months|escapejs }}'),
+                    datasets: [{
+                        label: 'Completadas',
+                        data: JSON.parse('{{ monthly_tasks_completed|escapejs }}'),
+                        backgroundColor: '#10B981',
+                        borderRadius: 4
+                    }, {
+                        label: 'Pendientes',
+                        data: JSON.parse('{{ monthly_tasks_pending|escapejs }}'),
+                        backgroundColor: '#F59E0B',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { stacked: false },
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        });
+    </script>
+</main>
+{% endblock %}

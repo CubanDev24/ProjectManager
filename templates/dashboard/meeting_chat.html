@@ -1,0 +1,278 @@
+{% extends "dashboard/base.html" %}
+{% load custom_filters %}
+
+{% block content %}
+<style>
+    .comment-avatar {
+        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    }
+    .meeting-btn {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .meeting-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .comment-card {
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+    .comment-card:hover {
+        border-left-color: #3b82f6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .form-input:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    /* Sidebar Form Styles */
+    .sidebar-form-container {
+        width: 350px;
+        border-left: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .form-content {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    /* Layout Styles */
+    .communication-room-container {
+        display: flex;
+        height: calc(100vh - 80px);
+    }
+    .messages-main-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: #f3f4f6;
+    }
+    .messages-header {
+        flex-shrink: 0;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .messages-scroll-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1.5rem;
+    }
+    /* Form Elements */
+    .comment-textarea {
+        min-height: 10px;
+        resize: none;
+    }
+    .form-footer {
+        margin-top: auto;
+        padding-top: 1.5rem;
+    }
+</style>
+
+<div class="communication-room-container">
+    <!-- Área principal de mensajes -->
+    <div class="messages-main-area">
+        <!-- Cabecera -->
+        <div class="messages-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Sala de Comunicación</h2>
+                    <p class="text-gray-500 text-sm">Conversación con el equipo</p>
+                </div>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">
+                    {{ comments.count }} mensajes
+                </span>
+            </div>
+        </div>
+
+        <!-- Área de mensajes con scroll -->
+        <div class="messages-scroll-container">
+            {% if comments %}
+                <div class="space-y-4">
+                    {% for comment in comments reversed%}
+                    <div class="comment-card bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="comment-avatar h-9 w-9 rounded-full flex items-center justify-center text-white font-medium shadow-sm">
+                                    {{ comment.user.username|first|upper }}
+                                </div>
+                            </div>
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ comment.user.username }}</p>
+                                        <p class="text-xs text-gray-400">{{ comment.created_at|date:"d M Y, H:i" }}</p>
+                                    </div>
+                                    {% if comment.is_meeting_link and comment.meeting_url %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        Reunión
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mt-1.5 text-sm text-gray-700 whitespace-pre-line">
+                                    {{ comment.comment }}
+                                </div>
+                                
+                                {% if comment.is_meeting_link and comment.meeting_url %}
+                                <div class="mt-3 flex items-center">
+                                    <a href="{{ comment.meeting_url }}" target="_blank" class="meeting-btn inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        Unirse ahora
+                                    </a>
+                                    <span class="ml-3 text-xs text-gray-400">Expira en 24 horas</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="h-full flex flex-col items-center justify-center text-center py-16 text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <h4 class="mt-4 font-medium">No hay mensajes aún</h4>
+                    <p class="text-gray-400 text-sm mt-1 max-w-xs">Envía el primer mensaje para iniciar la conversación</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Panel lateral con formulario - Versión corregida -->
+    <div class="sidebar-form-container bg-white">
+        <div class="form-content">
+ <!-- Participantes activos (que han comentado) -->
+        <div class="flex items-center space-x-2">
+            <div class="bg-yellow-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">
+                <i class="fas fa-comment"></i>
+            </div>
+            <span class="text-sm">Participantes: 
+                {% with unique_users=comments|dictsort:"user.id"|unique:"user_id" %}
+                    {{ unique_users|length }}
+                {% endwith %}
+            </span>
+        </div>
+        
+        <!-- Lista de usuarios que han participado -->
+        <div class="mt-3 space-y-2">
+            {% with unique_users=comments|dictsort:"user.id"|unique:"user_id" %}
+                {% for user_obj in unique_users %}
+                <div class="flex items-center space-x-2">
+                    <div class="comment-avatar h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-medium shadow-sm">
+                        {{ user_obj.user.username|first|upper }}
+                    </div>
+                    <span class="text-sm text-gray-600">{{ user_obj.user.username }}</span>
+                </div>
+                {% endfor %}
+            {% endwith %}
+        </div>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mt-6">Nuevo mensaje</h3>
+            
+            <form method="POST" class="flex flex-col flex-1">
+                {% csrf_token %}
+                
+                <div class="mt-4 flex-grow">
+                    <label for="id_comment" class="block text-sm font-medium text-gray-700 mb-2">Tu mensaje</label>
+                    <textarea name="comment" id="id_comment" rows="4" class="comment-textarea w-full px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent form-input" placeholder="Escribe tu mensaje..."></textarea>
+                </div>
+                
+                <div class="mt-4 flex items-center">
+                    <input type="checkbox" name="is_meeting_link" id="id_is_meeting_link" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="id_is_meeting_link" class="ml-2 block text-sm text-gray-600">
+                        Programar reunión
+                    </label>
+                </div>
+                
+                <div id="meetingUrlContainer" class="hidden transition-all duration-200 ease-in-out mt-4">
+                    <label for="id_meeting_url" class="block text-sm font-medium text-gray-700 mb-2">Enlace de Google Meet</label>
+                    <div class="relative">
+                        <input type="url" name="meeting_url" id="id_meeting_url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-400">Ejemplo: https://meet.google.com/abc-xyz-123</p>
+                </div>
+                
+                <div class="form-footer">
+                    <button type="submit" class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 font-medium">
+                        Enviar mensaje
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkbox = document.getElementById('id_is_meeting_link');
+        const urlContainer = document.getElementById('meetingUrlContainer');
+        const commentInput = document.getElementById('id_comment');
+        
+        // Configurar animación para el campo de reunión
+        urlContainer.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        urlContainer.style.opacity = '0';
+        urlContainer.style.transform = 'translateY(-5px)';
+        
+        // Manejar el checkbox de reunión
+        checkbox.addEventListener('change', function() {
+            if(this.checked) {
+                urlContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    urlContainer.style.opacity = '1';
+                    urlContainer.style.transform = 'translateY(0)';
+                }, 10);
+            } else {
+                urlContainer.style.opacity = '0';
+                urlContainer.style.transform = 'translateY(-5px)';
+                setTimeout(() => {
+                    urlContainer.classList.add('hidden');
+                }, 200);
+            }
+        });
+        
+        // Auto-scroll al final de los mensajes
+        const messagesContainer = document.querySelector('.messages-scroll-container');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Enviar con Enter (pero no Shift+Enter)
+        commentInput.addEventListener('keydown', function(e) {
+            if(e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.form.submit();
+            }
+        });
+    });
+    // Auto-scroll al final de los mensajes
+function scrollToBottom() {
+    const messagesContainer = document.querySelector('.messages-scroll-container');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Ejecutar al cargar y después de enviar un mensaje
+scrollToBottom();
+
+// Opcional: Usar MutationObserver para detectar nuevos mensajes
+const observer = new MutationObserver(scrollToBottom);
+observer.observe(document.querySelector('.messages-scroll-container'), {
+    childList: true,
+    subtree: true
+});
+</script>
+{% endblock %}

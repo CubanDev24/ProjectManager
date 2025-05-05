@@ -1,0 +1,1720 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+    /* Estilos optimizados para bugs */
+    .status-badge, .priority-badge, .type-badge {
+        font-size: 0.6875rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .bug-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background-color: white;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 0.75rem;
+    }
+
+    .bug-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .kanban-column {
+        min-height: 400px;
+        max-height: 80vh;
+        width: 240px;
+        flex-shrink: 0;
+        overflow-y: auto;
+    }
+
+    /* Colores para estados de bugs */
+    .status-reportado { background-color: #9CA3AF; color: white; }
+    .status-asignado { background-color: #3B82F6; color: white; }
+    .status-en_progreso { background-color: #F59E0B; color: white; }
+    .status-resuelto { background-color: #10B981; color: white; }
+    .status-verificado { background-color: #8B5CF6; color: white; }
+    .status-cerrado { background-color: #6B7280; color: white; }
+    .status-rechazado { background-color: #EF4444; color: white; }
+
+    /* Colores para prioridades de bugs */
+    .priority-baja { background-color: #10B981; color: white; }
+    .priority-media { background-color: #F59E0B; color: white; }
+    .priority-alta { background-color: #F97316; color: white; }
+    .priority-critica { background-color: #EF4444; color: white; }
+
+    /* Colores para tipos de bugs */
+    .type-error { background-color: #EF4444; color: white; }
+    .type-mejora { background-color: #3B82F6; color: white; }
+    .type-funcionalidad { background-color: #10B981; color: white; }
+    .type-seguridad { background-color: #8B5CF6; color: white; }
+    .type-usabilidad { background-color: #F59E0B; color: white; }
+    .type-otro { background-color: #6B7280; color: white; }
+
+    /* Steps to reproduce styling */
+    .steps-container {
+        background-color: #f8fafc;
+        border-left: 4px solid #e2e8f0;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+        border-radius: 0 0.25rem 0.25rem 0;
+    }
+
+    /* Document and comment styling */
+    .attachment-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background-color: white;
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-container {
+        width: 100%;
+        max-width: 42rem;
+        margin: 0 1rem;
+    }
+
+    /* Form styles */
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid #d1d5db;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    /* Loading spinner */
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* Hidden utility class */
+    .hidden {
+        display: none;
+    }
+
+    /* Compact form layout */
+    .compact-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .compact-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Textarea styles */
+    .compact-textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+</style>
+
+<!-- CDN Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script>
+    // App State
+    const state = {
+        activeSection: 'tabla',
+        currentProjectId: {{ proyecto.id }},
+        calendar: null,
+        isLoading: false,
+        allBugs: [],
+        currentBug: null
+    };
+
+    // DOM Elements
+    const elements = {
+        sections: {
+            tabla: document.getElementById('tabla-section'),
+            kanban: document.getElementById('kanban-section'),
+            grafico: document.getElementById('grafico-section'),
+            calendario: document.getElementById('calendario-section')
+        },
+        modals: {
+            bug: {
+                overlay: document.getElementById('bug-modal'),
+                form: document.getElementById('bug-form'),
+                title: document.getElementById('bug-modal-title')
+            },
+            bugDetails: {
+                overlay: document.getElementById('bug-details-modal'),
+                name: document.getElementById('bug-details-name'),
+                description: document.getElementById('bug-details-description'),
+                steps: document.getElementById('bug-details-steps'),
+                status: document.getElementById('bug-details-status'),
+                priority: document.getElementById('bug-details-priority'),
+                type: document.getElementById('bug-details-type'),
+                reporter: document.getElementById('bug-details-reporter'),
+                assignee: document.getElementById('bug-details-assignee'),
+                dueDate: document.getElementById('bug-details-due-date'),
+                created: document.getElementById('bug-details-created'),
+                documentsList: document.getElementById('bug-documents-list'),
+                commentsList: document.getElementById('bug-comments-list'),
+                statusForm: document.getElementById('change-status-form')
+            }
+        },
+        forms: {
+            document: document.getElementById('document-form'),
+            comment: document.getElementById('comment-form')
+        },
+        charts: {
+            status: null,
+            priority: null,
+            type: null
+        },
+        filters: {
+            search: document.getElementById('search-input'),
+            status: document.getElementById('status-filter'),
+            priority: document.getElementById('priority-filter'),
+            type: document.getElementById('type-filter')
+        }
+    };
+
+    // Utility Functions
+    const utils = {
+        getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        },
+
+        showLoading() {
+            state.isLoading = true;
+            // Implement loading indicator
+        },
+
+        hideLoading() {
+            state.isLoading = false;
+            // Hide loading indicator
+        },
+
+        showAlert(message, type = 'success') {
+            // Implement a nice alert system
+            alert(message);
+        },
+
+        formatDate(dateString) {
+            if (!dateString) return 'Sin fecha';
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        },
+
+        formatDateTime(dateString) {
+            if (!dateString) return 'Sin fecha';
+            const options = {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        },
+
+        closeModal(modalType) {
+            if (elements.modals[modalType] && elements.modals[modalType].overlay) {
+                elements.modals[modalType].overlay.classList.remove('active');
+            }
+        },
+
+        filterBugs(bugs) {
+            const searchTerm = elements.filters.search ? elements.filters.search.value.toLowerCase() : '';
+            const statusFilter = elements.filters.status ? elements.filters.status.value : '';
+            const priorityFilter = elements.filters.priority ? elements.filters.priority.value : '';
+            const typeFilter = elements.filters.type ? elements.filters.type.value : '';
+
+            return bugs.filter(bug => {
+                const matchesSearch = bug.titulo.toLowerCase().includes(searchTerm) ||
+                                    (bug.descripcion && bug.descripcion.toLowerCase().includes(searchTerm)) ||
+                                    (bug.pasos_reproducir && bug.pasos_reproducir.toLowerCase().includes(searchTerm));
+                const matchesStatus = !statusFilter || bug.estado === statusFilter;
+                const matchesPriority = !priorityFilter || bug.prioridad === priorityFilter;
+                const matchesType = !typeFilter || bug.tipo === typeFilter;
+
+                return matchesSearch && matchesStatus && matchesPriority && matchesType;
+            });
+        }
+    };
+
+    // API Service
+    const api = {
+        async request(url, method = 'GET', data = null) {
+            const headers = {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': utils.getCookie('csrftoken')
+            };
+
+            const config = {
+                method,
+                headers,
+                credentials: 'include'
+            };
+
+            if (data) {
+                config.body = JSON.stringify(data);
+            }
+
+            try {
+                utils.showLoading();
+                const response = await fetch(url, config);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            } finally {
+                utils.hideLoading();
+            }
+        },
+
+        getBugs(projectId) {
+            return this.request(`/proyectos/${projectId}/bugs/`);
+        },
+
+        getBug(bugId) {
+            return this.request(`/api/bugs/${bugId}/`);
+        },
+
+        createBug(data) {
+            return this.request(`/api/bugs/crear/${state.currentProjectId}/`, 'POST', data);
+        },
+
+        updateBug(bugId, data) {
+            return this.request(`/api/bugs/editar/${bugId}/`, 'PUT', data);
+        },
+
+        deleteBug(bugId) {
+            return this.request(`/api/bugs/eliminar/${bugId}/`, 'DELETE');
+        },
+
+        changeBugStatus(bugId, status) {
+            const formData = new FormData();
+            formData.append('estado', status);
+            formData.append('csrfmiddlewaretoken', utils.getCookie('csrftoken'));
+
+            return fetch(`/api/bugs/estado/${bugId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(response => response.json());
+        },
+
+        addComment(bugId, content) {
+            const formData = new FormData();
+            formData.append('contenido', content);
+            formData.append('csrfmiddlewaretoken', utils.getCookie('csrftoken'));
+
+            return fetch(`/api/bugs/${bugId}/comentarios/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(response => response.json());
+        },
+
+        uploadDocument(bugId, formData) {
+            formData.append('csrfmiddlewaretoken', utils.getCookie('csrftoken'));
+
+            return fetch(`/api/bugs/${bugId}/documentos/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(response => response.json());
+        }
+    };
+
+    // View Functions
+    const views = {
+        init() {
+            // Initialize elements if they exist
+            this.initElements();
+
+            if (elements.sections.tabla) {
+                this.initCalendar();
+                this.initCharts();
+                this.loadBugs();
+                this.setupEventListeners();
+                this.changeSection('tabla');
+            }
+        },
+
+        initElements() {
+            // Initialize all elements to prevent null reference errors
+            if (!elements.sections.tabla) elements.sections.tabla = document.getElementById('tabla-section');
+            if (!elements.sections.kanban) elements.sections.kanban = document.getElementById('kanban-section');
+            if (!elements.sections.grafico) elements.sections.grafico = document.getElementById('grafico-section');
+            if (!elements.sections.calendario) elements.sections.calendario = document.getElementById('calendario-section');
+
+            if (!elements.modals.bug.overlay) elements.modals.bug.overlay = document.getElementById('bug-modal');
+            if (!elements.modals.bug.form) elements.modals.bug.form = document.getElementById('bug-form');
+            if (!elements.modals.bug.title) elements.modals.bug.title = document.getElementById('bug-modal-title');
+
+            if (!elements.modals.bugDetails.overlay) elements.modals.bugDetails.overlay = document.getElementById('bug-details-modal');
+            if (!elements.modals.bugDetails.name) elements.modals.bugDetails.name = document.getElementById('bug-details-name');
+            if (!elements.modals.bugDetails.description) elements.modals.bugDetails.description = document.getElementById('bug-details-description');
+            if (!elements.modals.bugDetails.steps) elements.modals.bugDetails.steps = document.getElementById('bug-details-steps');
+            if (!elements.modals.bugDetails.status) elements.modals.bugDetails.status = document.getElementById('bug-details-status');
+            if (!elements.modals.bugDetails.priority) elements.modals.bugDetails.priority = document.getElementById('bug-details-priority');
+            if (!elements.modals.bugDetails.type) elements.modals.bugDetails.type = document.getElementById('bug-details-type');
+            if (!elements.modals.bugDetails.reporter) elements.modals.bugDetails.reporter = document.getElementById('bug-details-reporter');
+            if (!elements.modals.bugDetails.assignee) elements.modals.bugDetails.assignee = document.getElementById('bug-details-assignee');
+            if (!elements.modals.bugDetails.dueDate) elements.modals.bugDetails.dueDate = document.getElementById('bug-details-due-date');
+            if (!elements.modals.bugDetails.created) elements.modals.bugDetails.created = document.getElementById('bug-details-created');
+            if (!elements.modals.bugDetails.documentsList) elements.modals.bugDetails.documentsList = document.getElementById('bug-documents-list');
+            if (!elements.modals.bugDetails.commentsList) elements.modals.bugDetails.commentsList = document.getElementById('bug-comments-list');
+            if (!elements.modals.bugDetails.statusForm) elements.modals.bugDetails.statusForm = document.getElementById('change-status-form');
+
+            if (!elements.forms.document) elements.forms.document = document.getElementById('document-form');
+            if (!elements.forms.comment) elements.forms.comment = document.getElementById('comment-form');
+
+            if (!elements.filters.search) elements.filters.search = document.getElementById('search-input');
+            if (!elements.filters.status) elements.filters.status = document.getElementById('status-filter');
+            if (!elements.filters.priority) elements.filters.priority = document.getElementById('priority-filter');
+            if (!elements.filters.type) elements.filters.type = document.getElementById('type-filter');
+        },
+
+        setupEventListeners() {
+            // Navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.changeSection(link.dataset.section);
+                });
+            });
+
+            // Edit bug button in details modal
+            const editBugBtn = document.getElementById('edit-bug-btn');
+            if (editBugBtn) {
+                editBugBtn.addEventListener('click', () => {
+                    const bugId = elements.modals.bugDetails.overlay.dataset.bugId;
+                    this.showEditBugModal(bugId);
+                    utils.closeModal('bugDetails');
+                });
+            }
+
+            // Form submissions
+            if (elements.modals.bug.form) {
+                elements.modals.bug.form.addEventListener('submit', (e) => this.handleBugFormSubmit(e));
+            }
+
+            if (elements.forms.comment) {
+                elements.forms.comment.addEventListener('submit', (e) => this.handleCommentSubmit(e));
+            }
+
+            if (elements.forms.document) {
+                elements.forms.document.addEventListener('submit', (e) => this.handleDocumentSubmit(e));
+            }
+
+            // Status change form
+            if (elements.modals.bugDetails.statusForm) {
+                elements.modals.bugDetails.statusForm.addEventListener('change', (e) => {
+                    const bugId = elements.modals.bugDetails.overlay.dataset.bugId;
+                    const newStatus = e.target.value;
+                    this.changeBugStatus(bugId, newStatus);
+                });
+            }
+
+            // Filter events
+            if (elements.filters.search) {
+                elements.filters.search.addEventListener('input', () => this.applyFilters());
+            }
+
+            if (elements.filters.status) {
+                elements.filters.status.addEventListener('change', () => this.applyFilters());
+            }
+
+            if (elements.filters.priority) {
+                elements.filters.priority.addEventListener('change', () => this.applyFilters());
+            }
+
+            if (elements.filters.type) {
+                elements.filters.type.addEventListener('change', () => this.applyFilters());
+            }
+        },
+
+        applyFilters() {
+            const filteredBugs = utils.filterBugs(state.allBugs);
+            this.updateViews(filteredBugs);
+        },
+
+        updateViews(bugs) {
+            this.updateBugTable(bugs);
+            this.updateKanbanBoard(bugs);
+            this.updateCharts(bugs);
+            this.updateCalendar(bugs);
+        },
+
+        changeSection(section) {
+            state.activeSection = section;
+
+            // Hide all sections
+            Object.values(elements.sections).forEach(sectionEl => {
+                if (sectionEl) sectionEl.classList.add('hidden');
+            });
+
+            // Show active section
+            if (elements.sections[section]) {
+                elements.sections[section].classList.remove('hidden');
+            }
+
+            // Update navigation
+            this.updateNavLinks();
+
+            // Special handling for calendar
+            if (section === 'calendario' && state.calendar) {
+                state.calendar.render();
+            }
+        },
+
+        updateNavLinks() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.getAttribute('data-section') === state.activeSection) {
+                    link.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                    link.classList.remove('text-gray-500');
+                } else {
+                    link.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    link.classList.add('text-gray-500');
+                }
+            });
+        },
+
+        initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            if (calendarEl) {
+                state.calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    themeSystem: 'standard',
+                    events: [],
+                    eventClick: (info) => {
+                        this.showBugDetailsModal(info.event.extendedProps.bugId);
+                    },
+                    eventBackgroundColor: '#3B82F6',
+                    eventBorderColor: '#2563EB',
+                    eventTextColor: '#FFFFFF'
+                });
+            }
+        },
+
+        initCharts() {
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                elements.charts.status = new Chart(statusCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Reportado', 'Asignado', 'En Progreso', 'Resuelto', 'Verificado', 'Cerrado', 'Rechazado'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#9CA3AF', // Reportado - gris
+                                '#3B82F6', // Asignado - azul
+                                '#F59E0B', // En Progreso - amarillo
+                                '#10B981', // Resuelto - verde
+                                '#8B5CF6', // Verificado - violeta
+                                '#6B7280', // Cerrado - gris oscuro
+                                '#EF4444'  // Rechazado - rojo
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Priority Chart
+            const priorityCtx = document.getElementById('priorityChart');
+            if (priorityCtx) {
+                elements.charts.priority = new Chart(priorityCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Baja', 'Media', 'Alta', 'Crítica'],
+                        datasets: [{
+                            label: 'Bugs por Prioridad',
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                '#10B981', // Baja - verde
+                                '#F59E0B', // Media - amarillo
+                                '#F97316', // Alta - naranja
+                                '#EF4444'  // Crítica - rojo
+                            ],
+                            borderColor: [
+                                '#047857',
+                                '#B45309',
+                                '#C2410C',
+                                '#B91C1C'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Type Chart
+            const typeCtx = document.getElementById('typeChart');
+            if (typeCtx) {
+                elements.charts.type = new Chart(typeCtx.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Error', 'Mejora', 'Funcionalidad', 'Seguridad', 'Usabilidad', 'Otro'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#EF4444', // Error - rojo
+                                '#3B82F6', // Mejora - azul
+                                '#10B981', // Funcionalidad - verde
+                                '#8B5CF6', // Seguridad - violeta
+                                '#F59E0B', // Usabilidad - amarillo
+                                '#6B7280'  // Otro - gris
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            }
+                        }
+                    }
+                });
+            }
+        },
+
+        async loadBugs() {
+            try {
+                const bugs = await api.getBugs(state.currentProjectId);
+                state.allBugs = bugs;
+                this.applyFilters();
+            } catch (error) {
+                utils.showAlert('Error al cargar los bugs', 'error');
+            }
+        },
+
+        updateBugTable(bugs) {
+            const tbody = document.getElementById('bugs-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            bugs.forEach(bug => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <button onclick="views.showBugDetailsModal(${bug.id})" class="text-blue-500 hover:text-blue-700 mr-2">
+                            <i class="fas fa-eye text-gray-400"></i>
+                        </button>
+                        ${bug.titulo}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="type-badge type-${bug.tipo}">${bug.get_tipo_display}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${bug.reportado_por ? bug.reportado_por.nombre_completo : 'N/A'}
+                    </td>
+                    <td class="py-3 px-4">
+                        ${bug.asignado_a ? bug.asignado_a.nombre_completo : 'Sin asignar'}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="status-badge status-${bug.estado}">${bug.get_estado_display}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="priority-badge priority-${bug.prioridad}">${bug.get_prioridad_display}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${utils.formatDate(bug.fecha_tope)}
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <div class="flex justify-end space-x-2">
+                            <button onclick="views.showEditBugModal(${bug.id})" class="text-blue-500 hover:text-blue-700">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="views.confirmDeleteBug(${bug.id})" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Add row for new bug
+            const addRow = document.createElement('tr');
+            addRow.className = 'hover:bg-gray-50';
+            addRow.innerHTML = `
+                <td colspan="8" class="py-2 px-4">
+                    <button onclick="views.showAddBugModal()" class="text-blue-500 hover:text-blue-700">
+                        + Reportar nuevo bug
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(addRow);
+        },
+
+        updateKanbanBoard(bugs) {
+            const statuses = {
+                'reportado': document.getElementById('kanban-reportado'),
+                'asignado': document.getElementById('kanban-asignado'),
+                'en_progreso': document.getElementById('kanban-en_progreso'),
+                'resuelto': document.getElementById('kanban-resuelto'),
+                'verificado': document.getElementById('kanban-verificado'),
+                'cerrado': document.getElementById('kanban-cerrado'),
+                'rechazado': document.getElementById('kanban-rechazado')
+            };
+
+            // Clear columns
+            Object.values(statuses).forEach(column => {
+                if (column) {
+                    const bugsContainer = column.querySelector('.kanban-bugs');
+                    if (bugsContainer) bugsContainer.innerHTML = '';
+                }
+            });
+
+            // Add bugs to columns
+            bugs.forEach(bug => {
+                const column = statuses[bug.estado];
+                if (column) {
+                    const bugsContainer = column.querySelector('.kanban-bugs');
+                    if (bugsContainer) {
+                        const bugCard = document.createElement('div');
+                        bugCard.className = 'bug-card';
+                        bugCard.setAttribute('draggable', 'true');
+                        bugCard.dataset.bugId = bug.id;
+                        bugCard.innerHTML = `
+                            <h3 class="text-sm font-medium text-gray-800">${bug.titulo}</h3>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="priority-badge priority-${bug.prioridad}">${bug.get_prioridad_display}</span>
+                                <span class="text-xs text-gray-500">${utils.formatDate(bug.fecha_tope)}</span>
+                            </div>
+                        `;
+                        bugCard.addEventListener('click', () => this.showBugDetailsModal(bug.id));
+                        bugsContainer.appendChild(bugCard);
+                    }
+                }
+            });
+
+            // Add "Add bug" button to each column
+            Object.values(statuses).forEach(column => {
+                if (column) {
+                    const bugsContainer = column.querySelector('.kanban-bugs');
+                    if (bugsContainer) {
+                        const addButton = document.createElement('button');
+                        addButton.className = 'text-gray-500 hover:text-gray-700 text-sm w-full text-left py-1 px-2 rounded hover:bg-gray-100';
+                        addButton.innerHTML = '+ Reportar bug';
+                        addButton.addEventListener('click', () => {
+                            this.showAddBugModal(column.dataset.status);
+                        });
+                        bugsContainer.appendChild(addButton);
+                    }
+                }
+            });
+
+            this.setupDragAndDrop();
+        },
+
+        setupDragAndDrop() {
+            // Implement drag and drop functionality
+            const draggables = document.querySelectorAll('.bug-card');
+            const containers = document.querySelectorAll('.kanban-bugs');
+
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => {
+                    draggable.classList.add('dragging');
+                });
+
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('dragging');
+                });
+            });
+
+            containers.forEach(container => {
+                container.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const afterElement = this.getDragAfterElement(container, e.clientY);
+                    const draggable = document.querySelector('.dragging');
+                    if (draggable) {
+                        if (afterElement == null) {
+                            container.appendChild(draggable);
+                        } else {
+                            container.insertBefore(draggable, afterElement);
+                        }
+                    }
+                });
+            });
+        },
+
+        getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.bug-card:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        },
+
+        updateCharts(bugs) {
+            // Count bugs by status
+            const statusCounts = {
+                'reportado': 0,
+                'asignado': 0,
+                'en_progreso': 0,
+                'resuelto': 0,
+                'verificado': 0,
+                'cerrado': 0,
+                'rechazado': 0
+            };
+
+            bugs.forEach(bug => {
+                statusCounts[bug.estado]++;
+            });
+
+            // Update status chart
+            if (elements.charts.status) {
+                elements.charts.status.data.datasets[0].data = Object.values(statusCounts);
+                elements.charts.status.update();
+            }
+
+            // Count bugs by priority
+            const priorityCounts = {
+                'baja': 0,
+                'media': 0,
+                'alta': 0,
+                'critica': 0
+            };
+
+            bugs.forEach(bug => {
+                priorityCounts[bug.prioridad]++;
+            });
+
+            // Update priority chart
+            if (elements.charts.priority) {
+                elements.charts.priority.data.datasets[0].data = Object.values(priorityCounts);
+                elements.charts.priority.update();
+            }
+
+            // Count bugs by type
+            const typeCounts = {
+                'error': 0,
+                'mejora': 0,
+                'funcionalidad': 0,
+                'seguridad': 0,
+                'usabilidad': 0,
+                'otro': 0
+            };
+
+            bugs.forEach(bug => {
+                typeCounts[bug.tipo]++;
+            });
+
+            // Update type chart
+            if (elements.charts.type) {
+                elements.charts.type.data.datasets[0].data = Object.values(typeCounts);
+                elements.charts.type.update();
+            }
+        },
+
+        updateCalendar(bugs) {
+            if (!state.calendar) return;
+
+            const events = bugs.map(bug => ({
+                title: bug.titulo,
+                start: bug.fecha_tope,
+                extendedProps: {
+                    bugId: bug.id
+                },
+                backgroundColor: this.getStatusColor(bug.estado),
+                borderColor: this.getStatusColor(bug.estado)
+            }));
+
+            state.calendar.removeAllEvents();
+            state.calendar.addEventSource(events);
+        },
+
+        getStatusColor(status) {
+            const colors = {
+                'reportado': '#9CA3AF',
+                'asignado': '#3B82F6',
+                'en_progreso': '#F59E0B',
+                'resuelto': '#10B981',
+                'verificado': '#8B5CF6',
+                'cerrado': '#6B7280',
+                'rechazado': '#EF4444'
+            };
+            return colors[status] || '#9CA3AF';
+        },
+
+        getStatusClass(status) {
+            return `status-${status}`;
+        },
+
+        async showBugDetailsModal(bugId) {
+            try {
+                const bug = await api.getBug(bugId);
+                state.currentBug = bug;
+
+                // Store bug ID in modal
+                if (elements.modals.bugDetails.overlay) {
+                    elements.modals.bugDetails.overlay.dataset.bugId = bug.id;
+                }
+
+                // Update modal content
+                if (elements.modals.bugDetails.name) elements.modals.bugDetails.name.textContent = bug.titulo;
+                if (elements.modals.bugDetails.description) elements.modals.bugDetails.description.textContent = bug.descripcion || 'Sin descripción';
+                if (elements.modals.bugDetails.steps) {
+                    if (bug.pasos_reproducir) {
+                        elements.modals.bugDetails.steps.innerHTML = `
+                            <div class="steps-container">
+                                <h4 class="text-sm font-medium mb-2">Pasos para reproducir:</h4>
+                                <p class="text-sm whitespace-pre-line">${bug.pasos_reproducir}</p>
+                            </div>
+                        `;
+                    } else {
+                        elements.modals.bugDetails.steps.innerHTML = '';
+                    }
+                }
+                if (elements.modals.bugDetails.status) {
+                    elements.modals.bugDetails.status.textContent = bug.get_estado_display;
+                    elements.modals.bugDetails.status.className = `status-badge status-${bug.estado}`;
+                }
+                if (elements.modals.bugDetails.priority) {
+                    elements.modals.bugDetails.priority.textContent = bug.get_prioridad_display;
+                    elements.modals.bugDetails.priority.className = `priority-badge priority-${bug.prioridad}`;
+                }
+                if (elements.modals.bugDetails.type) {
+                    elements.modals.bugDetails.type.textContent = bug.get_tipo_display;
+                    elements.modals.bugDetails.type.className = `type-badge type-${bug.tipo}`;
+                }
+                if (elements.modals.bugDetails.reporter) elements.modals.bugDetails.reporter.textContent = bug.reportado_por ? bug.reportado_por.nombre_completo : 'N/A';
+                if (elements.modals.bugDetails.assignee) elements.modals.bugDetails.assignee.textContent = bug.asignado_a ? bug.asignado_a.nombre_completo : 'Sin asignar';
+                if (elements.modals.bugDetails.dueDate) elements.modals.bugDetails.dueDate.textContent = utils.formatDate(bug.fecha_tope);
+                if (elements.modals.bugDetails.created) elements.modals.bugDetails.created.textContent = utils.formatDateTime(bug.fecha_creacion);
+
+                // Update status form options
+                if (elements.modals.bugDetails.statusForm) {
+                    const select = elements.modals.bugDetails.statusForm.querySelector('select');
+                    if (select) {
+                        select.innerHTML = '';
+
+                        let options = [];
+                        if (bug.estado === 'reportado') {
+                            options = [
+                                ['reportado', 'Reportado'],
+                                ['asignado', 'Asignado'],
+                                ['rechazado', 'Rechazado']
+                            ];
+                        } else if (bug.estado === 'asignado') {
+                            options = [
+                                ['asignado', 'Asignado'],
+                                ['en_progreso', 'En Progreso'],
+                                ['rechazado', 'Rechazado']
+                            ];
+                        } else if (bug.estado === 'en_progreso') {
+                            options = [
+                                ['en_progreso', 'En Progreso'],
+                                ['resuelto', 'Resuelto'],
+                                ['rechazado', 'Rechazado']
+                            ];
+                        } else if (bug.estado === 'resuelto') {
+                            options = [
+                                ['resuelto', 'Resuelto'],
+                                ['verificado', 'Verificado'],
+                                ['rechazado', 'Rechazado']
+                            ];
+                        } else if (bug.estado === 'verificado') {
+                            options = [
+                                ['verificado', 'Verificado'],
+                                ['cerrado', 'Cerrado']
+                            ];
+                        }
+
+                        options.forEach(([value, text]) => {
+                            const option = document.createElement('option');
+                            option.value = value;
+                            option.textContent = text;
+                            if (value === bug.estado) {
+                                option.selected = true;
+                            }
+                            select.appendChild(option);
+                        });
+                    }
+                }
+
+                // Show documents
+                if (elements.modals.bugDetails.documentsList) {
+                    elements.modals.bugDetails.documentsList.innerHTML = bug.documentos && bug.documentos.length > 0 ?
+                        bug.documentos.map(doc => `
+                            <li class="attachment-item">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-alt text-gray-400 mr-2"></i>
+                                        <span>${doc.nombre}</span>
+                                    </div>
+                                    <a href="${doc.archivo}" download class="text-blue-500 hover:text-blue-700">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            </li>
+                        `).join('') : '<li class="text-sm text-gray-500 py-2 px-3">No hay documentos adjuntos</li>';
+                }
+
+                // Show comments
+                if (elements.modals.bugDetails.commentsList) {
+                    elements.modals.bugDetails.commentsList.innerHTML = bug.comentarios && bug.comentarios.length > 0 ?
+                        bug.comentarios.map(comment => `
+                            <div class="border-b pb-3 mb-3">
+                                <div class="flex justify-between items-start mb-1">
+                                    <div class="font-medium">${comment.usuario.nombre_completo}</div>
+                                    <div class="text-xs text-gray-500">${utils.formatDateTime(comment.fecha_creacion)}</div>
+                                </div>
+                                <div class="text-sm">${comment.contenido}</div>
+                                ${comment.archivos && comment.archivos.length > 0 ?
+                                    comment.archivos.map(archivo => `
+                                        <div class="mt-2 flex items-center">
+                                            <i class="fas fa-paperclip text-gray-400 mr-2"></i>
+                                            <a href="${archivo.archivo}" download class="text-blue-500 hover:text-blue-700 text-sm">
+                                                ${archivo.nombre}
+                                            </a>
+                                        </div>
+                                    `).join('') : ''
+                                }
+                            </div>
+                        `).join('') : '<div class="text-sm text-gray-500">No hay comentarios</div>';
+                }
+
+                // Show modal
+                if (elements.modals.bugDetails.overlay) {
+                    elements.modals.bugDetails.overlay.classList.add('active');
+                }
+            } catch (error) {
+                utils.showAlert('Error al cargar los detalles del bug', 'error');
+            }
+        },
+
+        showAddBugModal(defaultStatus = null) {
+            if (!elements.modals.bug.overlay) return;
+
+            // Reset form
+            elements.modals.bug.form.reset();
+            elements.modals.bug.form.dataset.bugId = '';
+            if (elements.modals.bug.title) {
+                elements.modals.bug.title.textContent = 'Reportar Nuevo Bug';
+            }
+
+            // Set default status if provided
+            if (defaultStatus && elements.modals.bug.form) {
+                const statusField = elements.modals.bug.form.querySelector('#id_estado');
+                if (statusField) statusField.value = defaultStatus;
+            }
+
+            // Show modal
+            elements.modals.bug.overlay.classList.add('active');
+        },
+
+        showEditBugModal(bugId) {
+            this.showAddBugModal(); // Reuse the add modal
+            if (elements.modals.bug.title) {
+                elements.modals.bug.title.textContent = 'Editar Bug';
+            }
+
+            api.getBug(bugId)
+                .then(bug => {
+                    if (elements.modals.bug.form) {
+                        elements.modals.bug.form.dataset.bugId = bug.id;
+
+                        const titleField = document.getElementById('id_titulo');
+                        if (titleField) titleField.value = bug.titulo;
+
+                        const descField = document.getElementById('id_descripcion');
+                        if (descField) descField.value = bug.descripcion;
+
+                        const stepsField = document.getElementById('id_pasos_reproducir');
+                        if (stepsField) stepsField.value = bug.pasos_reproducir;
+
+                        const priorityField = document.getElementById('id_prioridad');
+                        if (priorityField) priorityField.value = bug.prioridad;
+
+                        const statusField = document.getElementById('id_estado');
+                        if (statusField) statusField.value = bug.estado;
+
+                        const typeField = document.getElementById('id_tipo');
+                        if (typeField) typeField.value = bug.tipo;
+
+                        const assigneeField = document.getElementById('id_asignado_a');
+                        if (assigneeField) assigneeField.value = bug.asignado_a ? bug.asignado_a.id : '';
+
+                        const dueDateField = document.getElementById('id_fecha_tope');
+                        if (dueDateField && bug.fecha_tope) {
+                            const date = new Date(bug.fecha_tope);
+                            const formattedDate = date.toISOString().slice(0, 16);
+                            dueDateField.value = formattedDate;
+                        }
+                    }
+                })
+                .catch(error => {
+                    utils.showAlert('Error al cargar el bug para editar', 'error');
+                });
+        },
+
+        async handleBugFormSubmit(event) {
+            event.preventDefault();
+
+            if (!elements.modals.bug.form) return;
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const bugId = form.dataset.bugId;
+
+            // Convert FormData to object
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
+
+            try {
+                let response;
+                if (bugId) {
+                    response = await api.updateBug(bugId, data);
+                } else {
+                    response = await api.createBug(data);
+                }
+
+                if (response.success) {
+                    utils.closeModal('bug');
+                    this.loadBugs();
+                    utils.showAlert(bugId ? 'Bug actualizado correctamente' : 'Bug reportado correctamente');
+                } else {
+                    utils.showAlert(Object.values(response.errors).join(', '), 'error');
+                }
+            } catch (error) {
+                utils.showAlert('Error al guardar el bug', 'error');
+            }
+        },
+
+        async changeBugStatus(bugId, newStatus) {
+            try {
+                const response = await api.changeBugStatus(bugId, newStatus);
+                if (response.success) {
+                    this.loadBugs();
+                    // Refresh the details modal if open
+                    if (elements.modals.bugDetails.overlay &&
+                        elements.modals.bugDetails.overlay.dataset.bugId == bugId) {
+                        this.showBugDetailsModal(bugId);
+                    }
+                    utils.showAlert('Estado del bug actualizado correctamente');
+                } else {
+                    utils.showAlert(Object.values(response.errors).join(', '), 'error');
+                }
+            } catch (error) {
+                utils.showAlert('Error al cambiar el estado del bug', 'error');
+            }
+        },
+
+        confirmDeleteBug(bugId) {
+            if (confirm('¿Estás seguro de que deseas eliminar este bug?')) {
+                this.deleteBug(bugId);
+            }
+        },
+
+        async deleteBug(bugId) {
+            try {
+                const response = await api.deleteBug(bugId);
+                if (response.success) {
+                    this.loadBugs();
+                    utils.showAlert('Bug eliminado correctamente');
+                } else {
+                    utils.showAlert('Error al eliminar el bug', 'error');
+                }
+            } catch (error) {
+                utils.showAlert('Error al eliminar el bug', 'error');
+            }
+        },
+
+        async handleCommentSubmit(event) {
+            event.preventDefault();
+
+            if (!elements.forms.comment || !elements.modals.bugDetails.overlay) return;
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const bugId = elements.modals.bugDetails.overlay.dataset.bugId;
+            const content = formData.get('contenido');
+
+            try {
+                const response = await api.addComment(bugId, content);
+                if (response.success) {
+                    form.reset();
+                    this.showBugDetailsModal(bugId); // Refresh details
+                } else {
+                    utils.showAlert(Object.values(response.errors).join(', '), 'error');
+                }
+            } catch (error) {
+                utils.showAlert('Error al agregar el comentario', 'error');
+            }
+        },
+
+        async handleDocumentSubmit(event) {
+            event.preventDefault();
+
+            if (!elements.forms.document || !elements.modals.bugDetails.overlay) return;
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const bugId = elements.modals.bugDetails.overlay.dataset.bugId;
+
+            try {
+                const response = await api.uploadDocument(bugId, formData);
+                if (response.success) {
+                    form.reset();
+                    this.showBugDetailsModal(bugId); // Refresh details
+                } else {
+                    utils.showAlert(Object.values(response.errors).join(', '), 'error');
+                }
+            } catch (error) {
+                utils.showAlert('Error al subir el documento', 'error');
+            }
+        }
+    };
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', () => {
+        views.init();
+    });
+</script>
+
+<main class="font-sans">
+    <!-- Main Content -->
+    <div class="px-4 py-2">
+        <!-- Project Header -->
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-semibold text-gray-800">{{ proyecto.nombre }} - Gestión de Bugs</h1>
+            <div class="flex items-center space-x-2">
+                <div class="bg-yellow-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">
+                    <i class="fas fa-bug"></i>
+                </div>
+                <span class="text-sm">Bugs: {{ proyecto.bugs.count }}</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex space-x-6 mb-4 border-b border-gray-200 pb-1">
+            <a href="#" class="nav-link text-gray-500" data-section="tabla">Tabla principal</a>
+            <a href="#" class="nav-link text-gray-500" data-section="kanban">Kanban</a>
+            <a href="#" class="nav-link text-gray-500" data-section="grafico">Gráfico</a>
+            <a href="#" class="nav-link text-gray-500" data-section="calendario">Calendario</a>
+        </div>
+
+        <!-- Table Section -->
+        <div id="tabla-section" class="mb-4">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center space-x-3">
+                    <button onclick="views.showAddBugModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">
+                        Reportar bug
+                    </button>
+
+                    <div class="relative">
+                        <input type="text" placeholder="Buscar..." id="search-input"
+                               class="w-48 pl-8 pr-3 py-1.5 border rounded-full text-sm focus:ring-1 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+
+                    <div class="relative">
+                        <select id="status-filter" class="w-40 pl-8 pr-3 py-1.5 border rounded-full text-sm focus:ring-1 focus:ring-blue-500">
+                            <option value="">Todos los estados</option>
+                            {% for value, label in prioridades %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="relative">
+                        <select id="priority-filter" class="w-40 pl-8 pr-3 py-1.5 border rounded-full text-sm focus:ring-1 focus:ring-blue-500">
+                            <option value="">Todas las prioridades</option>
+                            {% for value, label in prioridades %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="relative">
+                        <select id="type-filter" class="w-40 pl-8 pr-3 py-1.5 border rounded-full text-sm focus:ring-1 focus:ring-blue-500">
+                            <option value="">Todos los tipos</option>
+                            {% for value, label in tipos_bug %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reportado por</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asignado a</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha límite</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bugs-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Kanban Section -->
+        <div id="kanban-section" class="hidden mb-4">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center space-x-3">
+                    <button onclick="views.showAddBugModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">
+                        Reportar bug
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex space-x-4 overflow-x-auto pb-4">
+                <!-- Reported Column -->
+                <div id="kanban-reportado" data-status="reportado" class="kanban-column bg-gray-50 rounded-lg border border-gray-200 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-gray-700 flex items-center">
+                            <span class="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="reportado-count">0</span>
+                            Reportado
+                        </h2>
+                        <button class="text-gray-600 hover:text-gray-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Assigned Column -->
+                <div id="kanban-asignado" data-status="asignado" class="kanban-column bg-blue-50 rounded-lg border border-blue-200 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-blue-700 flex items-center">
+                            <span class="bg-blue-200 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="asignado-count">0</span>
+                            Asignado
+                        </h2>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- In Progress Column -->
+                <div id="kanban-en_progreso" data-status="en_progreso" class="kanban-column bg-yellow-50 rounded-lg border border-yellow-200 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-yellow-700 flex items-center">
+                            <span class="bg-yellow-200 text-yellow-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="en_progreso-count">0</span>
+                            En Progreso
+                        </h2>
+                        <button class="text-yellow-600 hover:text-yellow-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Resolved Column -->
+                <div id="kanban-resuelto" data-status="resuelto" class="kanban-column bg-green-50 rounded-lg border border-green-200 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-green-700 flex items-center">
+                            <span class="bg-green-200 text-green-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="resuelto-count">0</span>
+                            Resuelto
+                        </h2>
+                        <button class="text-green-600 hover:text-green-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Verified Column -->
+                <div id="kanban-verificado" data-status="verificado" class="kanban-column bg-purple-50 rounded-lg border border-purple-200 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-purple-700 flex items-center">
+                            <span class="bg-purple-200 text-purple-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="verificado-count">0</span>
+                            Verificado
+                        </h2>
+                        <button class="text-purple-600 hover:text-purple-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Closed Column -->
+                <div id="kanban-cerrado" data-status="cerrado" class="kanban-column bg-gray-100 rounded-lg border border-gray-300 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-gray-700 flex items-center">
+                            <span class="bg-gray-300 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="cerrado-count">0</span>
+                            Cerrado
+                        </h2>
+                        <button class="text-gray-600 hover:text-gray-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Rejected Column -->
+                <div id="kanban-rechazado" data-status="rechazado" class="kanban-column bg-red-50 rounded-lg border border-red-200 p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-red-700 flex items-center">
+                            <span class="bg-red-200 text-red-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="rechazado-count">0</span>
+                            Rechazado
+                        </h2>
+                        <button class="text-red-600 hover:text-red-800 text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="kanban-bugs">
+                        <!-- Bugs will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div id="grafico-section" class="hidden mb-4">
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Estadísticas de Bugs</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3">Bugs por Estado</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="bg-white p-4 rounded border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3">Bugs por Prioridad</h3>
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                    <div class="bg-white p-4 rounded border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3">Bugs por Tipo</h3>
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Section -->
+        <div id="calendario-section" class="hidden mb-4">
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Calendario de Bugs</h2>
+                <div id="calendar" class="calendar-view"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug Modal -->
+    <div id="bug-modal" class="modal-overlay">
+        <div class="modal-container w-full max-w-2xl">
+            <div class="relative bg-white rounded-xl shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-500">
+                    <h2 class="text-xl font-semibold text-white" id="bug-modal-title">Reportar Nuevo Bug</h2>
+                    <button onclick="utils.closeModal('bug')"
+                            class="absolute top-4 right-4 text-white hover:text-blue-100 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="bug-form" class="px-6 py-5">
+                    {% csrf_token %}
+                    <input type="hidden" name="proyecto" id="id_proyecto" value="{{ proyecto.id }}">
+
+                    <!-- Fila 1: Título y Tipo -->
+                    <div class="compact-form-grid">
+                        <!-- Título -->
+                        <div>
+                            <label for="id_titulo" class="block text-sm font-medium text-gray-700 mb-1">Título*</label>
+                            <input type="text" name="titulo" id="id_titulo" required class="form-input" placeholder="Describe brevemente el bug">
+                        </div>
+
+                        <!-- Tipo -->
+                        <div>
+                            <label for="id_tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo*</label>
+                            <select name="tipo" id="id_tipo" required class="form-input form-select">
+                                {% for value, label in tipos_bug %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fila 2: Prioridad y Estado -->
+                    <div class="compact-form-grid">
+                        <!-- Prioridad -->
+                        <div>
+                            <label for="id_prioridad" class="block text-sm font-medium text-gray-700 mb-1">Prioridad*</label>
+                            <select name="prioridad" id="id_prioridad" required class="form-input form-select">
+                                {% for value, label in prioridades %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Estado -->
+                        <div>
+                            <label for="id_estado" class="block text-sm font-medium text-gray-700 mb-1">Estado*</label>
+                            <select name="estado" id="id_estado" required class="form-input form-select">
+                                {% for value, label in estados_bug %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fila 3: Asignado y Fecha -->
+                    <div class="compact-form-grid">
+                        <!-- Asignado a -->
+                        <div>
+                            <label for="id_asignado_a" class="block text-sm font-medium text-gray-700 mb-1">Asignado a</label>
+                            <select name="asignado_a" id="id_asignado_a" class="form-input form-select">
+                                <option value="">Seleccionar...</option>
+                                {% for usuario in proyecto.integrantes.all %}
+                                    <option value="{{ usuario.id }}">{{ usuario.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Fecha límite -->
+                        <div>
+                            <label for="id_fecha_tope" class="block text-sm font-medium text-gray-700 mb-1">Fecha límite</label>
+                            <input type="datetime-local" name="fecha_tope" id="id_fecha_tope" class="form-input">
+                        </div>
+                    </div>
+
+                    <!-- Descripción y Pasos en una sola columna -->
+                    <div class="mb-4">
+                        <!-- Descripción -->
+                        <div class="mb-3">
+                            <label for="id_descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción*</label>
+                            <textarea name="descripcion" id="id_descripcion" rows="3" class="form-input compact-textarea" placeholder="Describe el bug con detalle"></textarea>
+                        </div>
+
+                        <!-- Pasos para reproducir -->
+                        <div>
+                            <label for="id_pasos_reproducir" class="block text-sm font-medium text-gray-700 mb-1">Pasos para reproducir</label>
+                            <textarea name="pasos_reproducir" id="id_pasos_reproducir" rows="3" class="form-input compact-textarea" placeholder="Describe los pasos necesarios para reproducir el bug"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="utils.closeModal('bug')"
+                                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors">
+                            Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug Details Modal -->
+    <div id="bug-details-modal" class="modal-overlay">
+        <div class="bg-white rounded-lg border border-gray-200 p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl font-bold text-gray-800" id="bug-details-name">Nombre del bug</h2>
+                <div class="flex space-x-2">
+                    <button id="edit-bug-btn" class="text-blue-500 hover:text-blue-700">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="utils.closeModal('bugDetails')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <div class="mb-6">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Descripción</h3>
+                        <p class="text-sm text-gray-800" id="bug-details-description"></p>
+                        <div id="bug-details-steps"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Tipo</h3>
+                            <span id="bug-details-type" class="type-badge"></span>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Prioridad</h3>
+                            <span id="bug-details-priority" class="priority-badge"></span>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Estado</h3>
+                            <span id="bug-details-status" class="status-badge"></span>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Cambiar Estado</h3>
+                            <form id="change-status-form">
+                                {% csrf_token %}
+                                <select name="estado" class="form-input form-select text-sm">
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </form>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Reportado por</h3>
+                            <p class="text-sm text-gray-800" id="bug-details-reporter"></p>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Asignado a</h3>
+                            <p class="text-sm text-gray-800" id="bug-details-assignee"></p>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Fecha límite</h3>
+                            <p class="text-sm text-gray-800" id="bug-details-due-date"></p>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Creado</h3>
+                            <p class="text-sm text-gray-800" id="bug-details-created"></p>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</main>
+
+{% endblock %}

@@ -1,0 +1,321 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkFlow - Registro</title>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind with Custom Config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                        },
+                        'blue-medium': '#5dade2'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 1.5s ease-in-out',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+                            '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-secondary: #5dade2;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .input-field {
+            transition: all 0.3s ease;
+            border-radius: 0.375rem;
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+            border-color: var(--color-primary);
+        }
+
+        .error-message {
+            animation: fadeIn 0.3s ease-in-out, shake 0.5s cubic-bezier(.36,.07,.19,.97);
+        }
+
+        .btn-hover-effect {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-hover-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+
+        .btn-hover-effect:hover::before {
+            left: 100%;
+        }
+
+        .register-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+
+        @media (max-height: 700px) {
+            .register-container {
+                margin-top: 1rem;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex items-center justify-center p-4">
+    <div class="register-container w-full max-w-sm p-6">
+        <!-- Logo -->
+        <div class="flex justify-center mb-4">
+            <img src="{% static 'imagenes/milog.png' %}" class="h-12 w-auto rounded-xl" alt="WorkFlow Logo">
+        </div>
+
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-1">
+            <span class="gradient-text">Crear Cuenta</span>
+        </h2>
+        <p class="text-center text-gray-500 text-sm mb-6">
+            Completa el formulario para registrarte
+        </p>
+
+        <!-- Mensajes de error generales -->
+        {% if form.non_field_errors %}
+            <div class="mb-3 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded error-message text-sm">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <p>{{ form.non_field_errors|join:", " }}</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <form class="space-y-3" method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- Campos compactos -->
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Nombre -->
+                <div class="col-span-1">
+                    <label for="id_first_name" class="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <input
+                            type="text"
+                            id="id_first_name"
+                            name="first_name"
+                            class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.first_name.errors %}border-red-500 bg-red-50{% endif %}"
+                            placeholder="Nombre"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- Apellido -->
+                <div class="col-span-1">
+                    <label for="id_last_name" class="block text-xs font-medium text-gray-700 mb-1">Apellido</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                            <i class="fas fa-user-tag"></i>
+                        </div>
+                        <input
+                            type="text"
+                            id="id_last_name"
+                            name="last_name"
+                            class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.last_name.errors %}border-red-500 bg-red-50{% endif %}"
+                            placeholder="Apellido"
+                            required
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label for="id_email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <input
+                        type="email"
+                        id="id_email"
+                        name="email"
+                        class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.email.errors %}border-red-500 bg-red-50{% endif %}"
+                        placeholder="tu@email.com"
+                        required
+                    >
+                </div>
+            </div>
+
+            <!-- Username -->
+            <div>
+                <label for="id_username" class="block text-xs font-medium text-gray-700 mb-1">Usuario</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                        <i class="fas fa-at"></i>
+                    </div>
+                    <input
+                        type="text"
+                        id="id_username"
+                        name="username"
+                        class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.username.errors %}border-red-500 bg-red-50{% endif %}"
+                        placeholder="nombredeusuario"
+                        required
+                    >
+                </div>
+            </div>
+
+            <!-- Contraseña -->
+            <div>
+                <label for="id_password1" class="block text-xs font-medium text-gray-700 mb-1">Contraseña</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <input
+                        type="password"
+                        id="id_password1"
+                        name="password1"
+                        class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.password1.errors %}border-red-500 bg-red-50{% endif %}"
+                        placeholder="••••••••"
+                        required
+                    >
+                    <div class="absolute inset-y-0 right-0 pr-2 flex items-center cursor-pointer" onclick="togglePasswordVisibility('id_password1', 'togglePassword1Icon')">
+                        <i class="fas fa-eye text-primary-500 hover:text-primary-600 text-sm" id="togglePassword1Icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmar Contraseña -->
+            <div>
+                <label for="id_password2" class="block text-xs font-medium text-gray-700 mb-1">Confirmar</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <input
+                        type="password"
+                        id="id_password2"
+                        name="password2"
+                        class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.password2.errors %}border-red-500 bg-red-50{% endif %}"
+                        placeholder="••••••••"
+                        required
+                    >
+                    <div class="absolute inset-y-0 right-0 pr-2 flex items-center cursor-pointer" onclick="togglePasswordVisibility('id_password2', 'togglePassword2Icon')">
+                        <i class="fas fa-eye text-primary-500 hover:text-primary-600 text-sm" id="togglePassword2Icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Términos y condiciones -->
+            <div class="flex items-start pt-1">
+                <div class="flex items-center h-5">
+                    <input
+                        id="terms"
+                        name="terms"
+                        type="checkbox"
+                        class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        required
+                    >
+                </div>
+                <label for="terms" class="ml-2 block text-xs text-gray-700">
+                    Acepto los <a href="#" class="text-primary-600 hover:text-primary-500">Términos</a> y <a href="#" class="text-primary-600 hover:text-primary-500">Privacidad</a>
+                </label>
+            </div>
+
+            <!-- Botón de submit -->
+            <div class="pt-2">
+                <button type="submit" class="btn-hover-effect w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    Registrarse
+                    <i class="fas fa-user-plus ml-2 text-sm"></i>
+                </button>
+            </div>
+        </form>
+
+        <!-- Enlace a login -->
+        <div class="mt-4 text-center text-xs">
+            <p class="text-gray-600">
+                ¿Ya tienes cuenta? <a href="{% url 'login' %}" class="font-medium text-primary-600 hover:text-primary-500">Inicia sesión</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        function togglePasswordVisibility(fieldId, iconId) {
+            const passwordField = document.getElementById(fieldId);
+            const togglePasswordIcon = document.getElementById(iconId);
+            const isPasswordVisible = passwordField.type === 'text';
+
+            if (isPasswordVisible) {
+                passwordField.type = 'password';
+                togglePasswordIcon.classList.remove('fa-eye-slash');
+                togglePasswordIcon.classList.add('fa-eye');
+            } else {
+                passwordField.type = 'text';
+                togglePasswordIcon.classList.remove('fa-eye');
+                togglePasswordIcon.classList.add('fa-eye-slash');
+            }
+        }
+
+        // Prevent icon click from stealing focus
+        document.querySelectorAll('[id^="togglePassword"]').forEach(icon => {
+            icon.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>

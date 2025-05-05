@@ -1,0 +1,1061 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block content %}
+
+
+    <style>
+        /* Estilos optimizados */
+        .document-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .document-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .document-type-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        /* Colores para tipos de documento */
+        .type-CT { background-color: #3B82F6; color: white; } /* Contrato */
+        .type-FC { background-color: #10B981; color: white; } /* Factura */
+        .type-IN { background-color: #8B5CF6; color: white; } /* Informe */
+        .type-DS { background-color: #F59E0B; color: white; } /* Diseño */
+        .type-OT { background-color: #64748B; color: white; } /* Otro */
+
+        /* Modal styles - Mejoras */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-container {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 800px;
+            margin: 1rem;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 1.5rem;
+            padding: 0.25rem;
+        }
+
+        .modal-close:hover {
+            color: #111827;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Document preview styles */
+        .document-preview-container {
+            height: 70vh;
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .document-preview-toolbar {
+            padding: 0.75rem;
+            background-color: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .document-preview-content {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f3f4f6;
+            overflow: auto;
+        }
+
+        .document-preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* File icon colors */
+        .file-icon-pdf { color: #EF4444; }
+        .file-icon-doc { color: #3B82F6; }
+        .file-icon-xls { color: #10B981; }
+        .file-icon-img { color: #8B5CF6; }
+        .file-icon-zip { color: #F59E0B; }
+        .file-icon-default { color: #64748B; }
+
+        /* Loading spinner */
+        .spinner {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Message styles */
+        .message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message-success {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+
+        .message-error {
+            background-color: #FEE2E2;
+            color: #B91C1C;
+        }
+
+        .message-info {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Document grid */
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Search and filter bar */
+        .search-filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            min-width: 250px;
+        }
+
+        .filter-select {
+            width: 200px;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+        }
+
+        /* Drag and drop area */
+        .border-dashed {
+            transition: all 0.2s ease;
+        }
+
+        .border-dashed.highlight {
+            background-color: #EFF6FF;
+            border-color: #3B82F6;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .documents-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .search-input, .filter-select {
+                width: 100%;
+            }
+        }
+
+        /* Button styles */
+        .btn-primary {
+            background-color: #4f22d8;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563EB;
+        }
+
+        .btn-secondary {
+            background-color: #E5E7EB;
+            color: #374151;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #D1D5DB;
+        }
+
+        .btn-danger {
+            background-color: #EF4444;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-danger:hover {
+            background-color: #DC2626;
+        }
+    </style>
+
+    <!-- CDN Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<main class="font-sans">
+    <!-- Message Container -->
+    <div id="message-container" class="fixed top-4 right-4 z-50 w-80 space-y-2 hidden"></div>
+    <!-- Main Content -->
+    <div class="px-4 py-2 dashboard-container">
+        <!-- User Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-800">{{ proyecto.nombre }} - Gestión de Documentos</h1>
+            </div>
+            <button onclick="views.showUploadModal()" class="btn-primary flex items-center gap-2">
+                <i class="fas fa-upload"></i>
+                <span>Subir Documento</span>
+            </button>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar">
+            <div class="relative search-input">
+                <input type="text" placeholder="Buscar documentos..." id="search-input"
+                       class="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
+
+            <select id="type-filter" class="filter-select px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Todos los tipos</option>
+                {% for tipo, nombre in tipos_documento %}
+                    <option value="{{ tipo }}">{{ nombre }}</option>
+                {% endfor %}
+            </select>
+
+            <select id="sort-by" class="filter-select px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="newest">Más recientes primero</option>
+                <option value="oldest">Más antiguos primero</option>
+                <option value="name_asc">Nombre (A-Z)</option>
+                <option value="name_desc">Nombre (Z-A)</option>
+                <option value="size_asc">Tamaño (pequeño-grande)</option>
+                <option value="size_desc">Tamaño (grande-pequeño)</option>
+            </select>
+        </div>
+
+        <!-- Documents Grid -->
+        <div class="documents-grid" id="documents-container">
+            {% for documento in documentos %}
+            <div class="document-card" data-type="{{ documento.tipo }}" data-name="{{ documento.nombre|lower }}" data-date="{{ documento.fecha_subido|date:'U' }}" data-size="{{ documento.archivo.size }}">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="text-2xl">
+                            {% if documento.archivo.name|lower|slice:'-4:' == '.pdf' %}
+                                <i class="fas fa-file-pdf file-icon-pdf"></i>
+                            {% elif documento.archivo.name|lower|slice:'-5:' == '.docx' or documento.archivo.name|lower|slice:'-4:' == '.doc' %}
+                                <i class="fas fa-file-word file-icon-doc"></i>
+                            {% elif documento.archivo.name|lower|slice:'-5:' == '.xlsx' or documento.archivo.name|lower|slice:'-4:' == '.xls' %}
+                                <i class="fas fa-file-excel file-icon-xls"></i>
+                            {% elif documento.archivo.name|lower|slice:'-4:' == '.jpg' or documento.archivo.name|lower|slice:'-5:' == '.jpeg' or documento.archivo.name|lower|slice:'-4:' == '.png' %}
+                                <i class="fas fa-file-image file-icon-img"></i>
+                            {% elif documento.archivo.name|lower|slice:'-4:' == '.zip' or documento.archivo.name|lower|slice:'-4:' == '.rar' %}
+                                <i class="fas fa-file-archive file-icon-zip"></i>
+                            {% else %}
+                                <i class="fas fa-file file-icon-default"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-800 truncate max-w-[180px]">{{ documento.nombre }}</h3>
+                            <span class="document-type-badge type-{{ documento.tipo }}">{{ documento.get_tipo_display }}</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="views.previewDocument('{{ documento.id }}', '{{ documento.nombre|escapejs }}')"
+        class="btn-icon text-blue-500 hover:bg-blue-50"
+        title="Ver documento">
+    <i class="fas fa-eye"></i>
+</button>
+                        <a href="{% url 'descargar_documento' documento.id %}" class="btn-icon text-green-500 hover:bg-green-50" title="Descargar">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        {% if request.user == documento.subido_por or request.user == proyecto.jefe_proyecto or request.user.is_superuser %}
+                        <button onclick="views.showConfirmDeleteModal('{{ documento.id }}', '{{ documento.nombre|escapejs }}')" class="btn-icon text-red-500 hover:bg-red-50" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-500">
+                    <span>{{ documento.subido_por.get_full_name }}</span>
+                    <span>{{ documento.fecha_subido|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="mt-2 text-xs text-gray-400">
+                    {{ documento.archivo.size|filesizeformat }}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-10">
+                <i class="fas fa-folder-open text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500">No hay documentos en este proyecto</p>
+                <button onclick="views.showUploadModal()" class="mt-3 text-blue-500 hover:text-blue-700 flex items-center justify-center gap-2 mx-auto">
+                    <i class="fas fa-upload"></i>
+                    <span>Subir primer documento</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Document Preview Modal -->
+        <div id="document-preview-modal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 900px;">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="preview-document-title">Vista previa del documento</h3>
+                    <button class="modal-close" onclick="utils.hideModal('document-preview')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="document-preview-container">
+                        <div class="document-preview-toolbar">
+                            <div class="flex items-center gap-2">
+                                <span id="preview-document-name" class="font-medium"></span>
+                                <span id="preview-document-size" class="text-xs text-gray-500"></span>
+                            </div>
+                            <div class="flex gap-2">
+                                <a id="preview-download-link" href="#" class="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1">
+                                    <i class="fas fa-download"></i>
+                                    <span>Descargar</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="document-preview-content">
+                            <iframe id="document-preview-iframe" class="document-preview-iframe" allowfullscreen></iframe>
+                            <div id="unsupported-format-message" class="hidden p-6 text-center">
+                                <i class="fas fa-exclamation-triangle text-3xl text-yellow-500 mb-3"></i>
+                                <h4 class="text-lg font-medium mb-2">Vista previa no disponible</h4>
+                                <p class="text-gray-600 mb-4">Este tipo de archivo no se puede previsualizar en el navegador.</p>
+                                <a id="unsupported-download-link" href="#" class="btn-primary inline-flex items-center gap-2">
+                                    <i class="fas fa-download"></i>
+                                    <span>Descargar archivo</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="utils.hideModal('document-preview')" class="btn-secondary">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Document Modal -->
+        <div id="upload-document-modal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Subir Nuevo Documento</h3>
+                    <button class="modal-close" onclick="utils.hideModal('upload-document')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="document-upload-form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="proyecto_id" value="{{ proyecto.id }}">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del documento</label>
+                            <input type="text" name="nombre" required
+                                   class="w-full px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
+                            <select name="tipo" required class="w-full px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                                {% for tipo, nombre in tipos_documento %}
+                                    <option value="{{ tipo }}">{{ nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
+                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors duration-200" id="drop-area">
+                                <div class="space-y-1 text-center">
+                                    <div class="flex text-sm text-gray-600">
+                                        <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                            <span>Seleccionar archivo</span>
+                                            <input id="file-upload" name="archivo" type="file" class="sr-only" required>
+                                        </label>
+                                        <p class="pl-1">o arrastrar y soltar</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500" id="file-name">
+                                        PDF, DOC, XLS, JPG, PNG hasta 10MB
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex items-center justify-center gap-2">
+                            <i class="fas fa-upload"></i>
+                            <span>Subir Documento</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Delete Modal -->
+        <div id="confirm-delete-modal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="confirm-delete-title">¿Eliminar documento?</h3>
+                    <button class="modal-close" onclick="utils.hideModal('confirm-delete')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-delete-message">¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="utils.hideModal('confirm-delete')" class="btn-secondary">
+                        Cancelar
+                    </button>
+                    <button id="confirm-delete-button" class="btn-danger">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App State
+        const state = {
+            currentUserId: {{ request.user.id }},
+            isLoading: false,
+            allDocuments: [],
+            currentDocument: null,
+            proyectoId: {{ proyecto.id }}
+        };
+
+        // Utility Functions
+        const utils = {
+            getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            },
+
+            showLoading() {
+                state.isLoading = true;
+                // Show loading indicator if needed
+            },
+
+            hideLoading() {
+                state.isLoading = false;
+                // Hide loading indicator if needed
+            },
+
+            showAlert(message, type = 'success') {
+                const container = document.getElementById('message-container');
+                if (!container) return;
+
+                container.classList.remove('hidden');
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message message-${type}`;
+                messageDiv.innerHTML = `
+                    <span>${message}</span>
+                    <button class="close-message" onclick="this.parentElement.remove(); if(!document.getElementById('message-container').children.length) document.getElementById('message-container').classList.add('hidden')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+
+                container.appendChild(messageDiv);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    messageDiv.remove();
+                    if (!container.children.length) {
+                        container.classList.add('hidden');
+                    }
+                }, 5000);
+            },
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+
+            showModal(modalType) {
+                if (document.getElementById(`${modalType}-modal`)) {
+                    document.getElementById(`${modalType}-modal`).classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            },
+
+            hideModal(modalType) {
+                if (document.getElementById(`${modalType}-modal`)) {
+                    document.getElementById(`${modalType}-modal`).classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            },
+
+            filterDocuments() {
+                const searchTerm = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase() : '';
+                const typeFilter = document.getElementById('type-filter') ? document.getElementById('type-filter').value : '';
+                const sortBy = document.getElementById('sort-by') ? document.getElementById('sort-by').value : 'newest';
+
+                let filtered = [...state.allDocuments];
+
+                // Apply search filter
+                if (searchTerm) {
+                    filtered = filtered.filter(doc =>
+                        doc.nombre.toLowerCase().includes(searchTerm) ||
+                        doc.subido_por.get_full_name.toLowerCase().includes(searchTerm)
+                    );
+                }
+
+                // Apply type filter
+                if (typeFilter) {
+                    filtered = filtered.filter(doc => doc.tipo === typeFilter);
+                }
+
+                // Apply sorting
+                switch (sortBy) {
+                    case 'newest':
+                        filtered.sort((a, b) => new Date(b.fecha_subido) - new Date(a.fecha_subido));
+                        break;
+                    case 'oldest':
+                        filtered.sort((a, b) => new Date(a.fecha_subido) - new Date(b.fecha_subido));
+                        break;
+                    case 'name_asc':
+                        filtered.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                        break;
+                    case 'name_desc':
+                        filtered.sort((a, b) => b.nombre.localeCompare(a.nombre));
+                        break;
+                    case 'size_asc':
+                        filtered.sort((a, b) => a.archivo.size - b.archivo.size);
+                        break;
+                    case 'size_desc':
+                        filtered.sort((a, b) => b.archivo.size - a.archivo.size);
+                        break;
+                }
+
+                return filtered;
+            },
+
+            updateDocumentList(documents) {
+                const container = document.getElementById('documents-container');
+                if (!container) return;
+
+                if (documents.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-10">
+                            <i class="fas fa-folder-open text-4xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500">No se encontraron documentos</p>
+                            <button onclick="views.showUploadModal()" class="mt-3 text-blue-500 hover:text-blue-700 flex items-center justify-center gap-2 mx-auto">
+                                <i class="fas fa-upload"></i>
+                                <span>Subir nuevo documento</span>
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = documents.map(doc => `
+                    <div class="document-card" data-type="${doc.tipo}" data-name="${doc.nombre.toLowerCase()}" data-date="${new Date(doc.fecha_subido).getTime()}" data-size="${doc.archivo.size}">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="text-2xl">
+                                    ${this.getFileIcon(doc.archivo.name)}
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 truncate max-w-[180px]">${doc.nombre}</h3>
+                                    <span class="document-type-badge type-${doc.tipo}">${doc.get_tipo_display}</span>
+                                </div>
+                            </div>
+                            <div class="action-buttons">
+                                <button onclick="views.previewDocument('${doc.id}', '${doc.nombre.replace(/'/g, "\\'")}')" class="btn-icon text-blue-500 hover:bg-blue-50" title="Vista previa">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="/documentos/${doc.id}/descargar/" class="btn-icon text-green-500 hover:bg-green-50" title="Descargar">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                ${doc.can_delete ? `
+                                <button onclick="views.showConfirmDeleteModal('${doc.id}', '${doc.nombre.replace(/'/g, "\\'")}')" class="btn-icon text-red-500 hover:bg-red-50" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-sm text-gray-500">
+                            <span>${doc.subido_por.get_full_name}</span>
+                            <span>${new Date(doc.fecha_subido).toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-400">
+                            ${this.formatFileSize(doc.archivo.size)}
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            getFileIcon(filename) {
+                const lowerName = filename.toLowerCase();
+                if (lowerName.endsWith('.pdf')) {
+                    return '<i class="fas fa-file-pdf file-icon-pdf"></i>';
+                } else if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+                    return '<i class="fas fa-file-word file-icon-doc"></i>';
+                } else if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+                    return '<i class="fas fa-file-excel file-icon-xls"></i>';
+                } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+                    return '<i class="fas fa-file-image file-icon-img"></i>';
+                } else if (lowerName.endsWith('.zip') || lowerName.endsWith('.rar')) {
+                    return '<i class="fas fa-file-archive file-icon-zip"></i>';
+                } else {
+                    return '<i class="fas fa-file file-icon-default"></i>';
+                }
+            },
+
+            getPreviewableExtensions() {
+                return ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.txt', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+            },
+
+            canPreviewDocument(filename) {
+                const lowerName = filename.toLowerCase();
+                return this.getPreviewableExtensions().some(ext => lowerName.endsWith(ext));
+            }
+        };
+
+        // API Service
+        const api = {
+            async request(url, method = 'GET', data = null, isFormData = false) {
+                const headers = {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                };
+
+                if (!isFormData) {
+                    headers['Content-Type'] = 'application/json';
+                }
+
+                // Add CSRF token
+                const csrfToken = utils.getCookie('csrftoken');
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                }
+
+                const config = {
+                    method,
+                    headers,
+                    credentials: 'include'
+                };
+
+                if (data) {
+                    config.body = isFormData ? data : JSON.stringify(data);
+                }
+
+                try {
+                    utils.showLoading();
+                    const response = await fetch(url, config);
+
+                    // Check if response is JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        // If not JSON, try to parse as text first
+                        const text = await response.text();
+                        try {
+                            // Sometimes the response might be JSON but with wrong content-type
+                            return JSON.parse(text);
+                        } catch (e) {
+                            // If it's really not JSON, throw an error with the text
+                            throw new Error(text || `HTTP error! status: ${response.status}`);
+                        }
+                    }
+
+                    const responseData = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    return responseData;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    utils.showAlert(error.message || 'Error en la solicitud', 'error');
+                    throw error;
+                } finally {
+                    utils.hideLoading();
+                }
+            },
+
+            async uploadDocument(formData) {
+                return this.request('/proyecto/' + state.proyectoId + '/documentos/', 'POST', formData, true);
+            },
+
+            async deleteDocument(documentId) {
+                return this.request('/api/documentos/' + documentId + '/eliminar/', 'DELETE');
+            },
+
+            async getDocument(documentId) {
+                return this.request('/api/documentos/' + documentId + '/');
+            }
+        };
+
+        // View Functions
+        const views = {
+            init() {
+                this.initEventListeners();
+                this.loadInitialDocuments();
+                this.setupDragAndDrop();
+            },
+
+            initEventListeners() {
+                // Search input
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        const filtered = utils.filterDocuments();
+                        utils.updateDocumentList(filtered);
+                    });
+                }
+
+                // Type filter
+                const typeFilter = document.getElementById('type-filter');
+                if (typeFilter) {
+                    typeFilter.addEventListener('change', () => {
+                        const filtered = utils.filterDocuments();
+                        utils.updateDocumentList(filtered);
+                    });
+                }
+
+                // Sort by
+                const sortBy = document.getElementById('sort-by');
+                if (sortBy) {
+                    sortBy.addEventListener('change', () => {
+                        const filtered = utils.filterDocuments();
+                        utils.updateDocumentList(filtered);
+                    });
+                }
+
+                // File upload input
+                const fileUpload = document.getElementById('file-upload');
+                if (fileUpload) {
+                    fileUpload.addEventListener('change', (e) => {
+                        const fileName = document.getElementById('file-name');
+                        if (e.target.files.length > 0) {
+                            fileName.textContent = e.target.files[0].name;
+                        } else {
+                            fileName.textContent = 'PDF, DOC, XLS, JPG, PNG hasta 10MB';
+                        }
+                    });
+                }
+
+                // Document upload form
+                const uploadForm = document.getElementById('document-upload-form');
+                if (uploadForm) {
+                    uploadForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(uploadForm);
+
+                        try {
+                            const response = await api.uploadDocument(formData);
+                            if (response.success) {
+                                utils.showAlert('Documento subido correctamente');
+                                uploadForm.reset();
+                                document.getElementById('file-name').textContent = 'PDF, DOC, XLS, JPG, PNG hasta 10MB';
+                                utils.hideModal('upload-document');
+                                this.loadInitialDocuments();
+                            } else {
+                                utils.showAlert(response.error || 'Error al subir el documento', 'error');
+                            }
+                        } catch (error) {
+                            console.error('Error al subir documento:', error);
+                        }
+                    });
+                }
+
+                // Confirm delete button
+                const confirmDeleteBtn = document.getElementById('confirm-delete-button');
+                if (confirmDeleteBtn) {
+                    confirmDeleteBtn.addEventListener('click', async () => {
+                        if (state.currentDocument) {
+                            try {
+                                const response = await api.deleteDocument(state.currentDocument.id);
+                                if (response.success) {
+                                    utils.showAlert('Documento eliminado correctamente');
+                                    utils.hideModal('confirm-delete');
+                                    this.loadInitialDocuments();
+                                } else {
+                                    utils.showAlert(response.error || 'Error al eliminar el documento', 'error');
+                                }
+                            } catch (error) {
+                                console.error('Error al eliminar documento:', error);
+                            }
+                        }
+                    });
+                }
+            },
+
+            setupDragAndDrop() {
+                const dropArea = document.getElementById('drop-area');
+                if (!dropArea) return;
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, preventDefaults, false);
+                });
+
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, highlight, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, unhighlight, false);
+                });
+
+                function highlight() {
+                    dropArea.classList.add('bg-blue-50', 'border-blue-400');
+                }
+
+                function unhighlight() {
+                    dropArea.classList.remove('bg-blue-50', 'border-blue-400');
+                }
+
+                dropArea.addEventListener('drop', handleDrop, false);
+
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    const input = document.getElementById('file-upload');
+                    if (input && files.length) {
+                        input.files = files;
+                        document.getElementById('file-name').textContent = files[0].name;
+                    }
+                }
+            },
+
+            async loadInitialDocuments() {
+                try {
+                    // In a real app, you would fetch from API
+                    // For now we'll use the data rendered in the template
+                    const documents = [];
+                    {% for documento in documentos %}
+                    documents.push({
+                        id: '{{ documento.id }}',
+                        nombre: '{{ documento.nombre|escapejs }}',
+                        tipo: '{{ documento.tipo }}',
+                        get_tipo_display: '{{ documento.get_tipo_display|escapejs }}',
+                        archivo: {
+                            name: '{{ documento.archivo.name|escapejs }}',
+                            size: {{ documento.archivo.size }},
+                            url: '{{ documento.archivo.url }}'
+                        },
+                        subido_por: {
+                            get_full_name: '{{ documento.subido_por.get_full_name|escapejs }}'
+                        },
+                        fecha_subido: '{{ documento.fecha_subido|date:"c" }}',
+                        can_delete: {% if request.user == documento.subido_por or request.user == proyecto.jefe_proyecto or request.user.is_superuser %}true{% else %}false{% endif %}
+                    });
+                    {% endfor %}
+
+                    state.allDocuments = documents;
+                    const filtered = utils.filterDocuments();
+                    utils.updateDocumentList(filtered);
+                } catch (error) {
+                    console.error('Error al cargar documentos:', error);
+                    utils.showAlert('Error al cargar los documentos', 'error');
+                }
+            },
+
+            showUploadModal() {
+                utils.showModal('upload-document');
+            },
+
+async previewDocument(documentId, documentName) {
+    try {
+        // Obtener la URL del documento directamente desde el backend
+        const response = await fetch(`/api/documentos/${documentId}/`);
+        if (!response.ok) throw new Error('No se pudo obtener la información del documento');
+
+        const docData = await response.json();
+
+        // Tipos de archivo que pueden mostrarse en el navegador
+        const previewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'text/plain'];
+        const fileType = this.getFileType(docData.archivo.name);
+
+        if (previewableTypes.includes(fileType)) {
+            // Abrir en nueva pestaña
+            window.open(`/documentos/${documentId}/ver/`, '_blank');
+        } else {
+            // Mostrar mensaje para tipos no soportados
+            utils.showAlert('Este tipo de archivo no se puede previsualizar. Será descargado.', 'info');
+            // Forzar descarga
+            window.location.href = `/documentos/${documentId}/descargar/`;
+        }
+    } catch (error) {
+        console.error('Error al visualizar documento:', error);
+        utils.showAlert('Error al abrir el documento: ' + error.message, 'error');
+    }
+},
+
+getFileType(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    const typeMap = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'txt': 'text/plain',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+    return typeMap[extension] || 'application/octet-stream';
+},
+
+            showConfirmDeleteModal(documentId, documentName) {
+                state.currentDocument = { id: documentId, nombre: documentName };
+                document.getElementById('confirm-delete-title').textContent = `¿Eliminar "${documentName}"?`;
+                document.getElementById('confirm-delete-message').textContent = `¿Estás seguro de que deseas eliminar el documento "${documentName}"? Esta acción no se puede deshacer.`;
+                utils.showModal('confirm-delete');
+            }
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            views.init();
+        });
+    </script>
+</main>
+{% endblock %}

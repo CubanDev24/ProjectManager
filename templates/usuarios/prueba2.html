@@ -1,0 +1,239 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .hover-effect:hover {
+            background-color: #f0f4f8;
+            border-radius: 0.375rem;
+        }
+        .sidebar-collapsed {
+            width: 64px; /* Ancho del sidebar cuando está colapsado */
+        }
+        .sidebar-collapsed .sidebar-content {
+            display: none; /* Oculta el contenido del sidebar cuando está colapsado */
+        }
+        .sidebar-collapsed .nav-icon {
+            display: block; /* Muestra solo los íconos cuando el sidebar está colapsado */
+        }
+        .transition-all {
+            transition: all 0.3s ease; /* Transición suave para el sidebar */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-white border-r transition-all duration-300">
+            <div class="flex items-center justify-between p-4 border-b">
+                <div class="flex items-center space-x-2 sidebar-content">
+                    <div class="w-8 h-8 bg-purple-500 rounded-full"></div>
+                    <span class="text-xl font-semibold">monday</span>
+                </div>
+                <button id="toggleSidebar" class="text-blue-500">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="p-4 sidebar-content">
+                <nav class="space-y-4">
+                    <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                        <i class="fas fa-tachometer-alt nav-icon"></i>
+                        <span class="sidebar-content">Panel</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                        <i class="fas fa-user nav-icon"></i>
+                        <span class="sidebar-content">Personal</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                        <i class="fas fa-users nav-icon"></i>
+                        <span class="sidebar-content">Grupo</span>
+                    </a>
+                </nav>
+                <div class="mt-8 sidebar-content">
+                    <h3 class="text-gray-500 uppercase text-xs">Espacio de trabajo</h3>
+                    <div class="mt-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-chevron-down"></i>
+                            <span>Selector de proyectos</span>
+                        </div>
+                        <div class="ml-4 mt-4 space-y-4">
+                            <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                                <i class="fas fa-tasks nav-icon"></i>
+                                <span class="sidebar-content">Tareas</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                                <i class="fas fa-exclamation-triangle nav-icon"></i>
+                                <span class="sidebar-content">Bloqueos</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                                <i class="fas fa-running nav-icon"></i>
+                                <span class="sidebar-content">Sprints</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                                <i class="fas fa-handshake nav-icon"></i>
+                                <span class="sidebar-content">Colaboración</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-gray-700 hover:text-blue-500 hover-effect">
+                                <i class="fas fa-info-circle nav-icon"></i>
+                                <span class="sidebar-content">Detalles del proyecto</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div id="mainContent" class="flex-1 flex flex-col transition-all duration-300">
+            <header class="flex items-center justify-between p-4 bg-white border-b">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-purple-500 rounded-full"></div>
+                    <span class="text-xl font-semibold">monday work management</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500"><i class="fas fa-search"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-user"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-bell"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-cog"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-question-circle"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-user-circle"></i></button>
+                </div>
+            </header>
+            <div class="flex items-center justify-between p-4 border-b">
+                <div class="flex items-center space-x-2">
+                    <h1 class="text-2xl font-semibold">Board</h1>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500">Resumir</button>
+                    <button class="text-gray-500">Exportar a PDF</button>
+                </div>
+            </div>
+            <div class="flex-1 p-4 overflow-y-auto">
+                <!-- Panel Principal -->
+                <div class="space-y-8">
+                    <div class="grid grid-cols-4 gap-4">
+                        <!-- Proyectos Activos -->
+                        <div class="col-span-1 bg-white p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold mb-4">Proyectos Activos</h2>
+                            <ul class="space-y-2">
+                                <li class="flex items-center justify-between p-3 bg-green-100 rounded-lg hover:bg-green-200">
+                                    <div class="flex items-center space-x-2">
+                                        <img alt="Icono de Proyecto 1" class="w-8 h-8 rounded-full" src="https://storage.googleapis.com/a1aa/image/w06NUkR4GvoF6YHVEk6iEtqEv2xiCb64mPc_mhhRakQ.jpg" />
+                                        <span>Proyecto 1</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">En curso</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-blue-100 rounded-lg hover:bg-blue-200">
+                                    <div class="flex items-center space-x-2">
+                                        <img alt="Icono de Proyecto 2" class="w-8 h-8 rounded-full" src="https://storage.googleapis.com/a1aa/image/zdZ6uPCdhV2Q-Kdc3VKVqOXd5WY3YsPmVfsOC8Yiuyo.jpg" />
+                                        <span>Proyecto 2</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">Listo</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-red-100 rounded-lg hover:bg-red-200">
+                                    <div class="flex items-center space-x-2">
+                                        <img alt="Icono de Proyecto 3" class="w-8 h-8 rounded-full" src="https://storage.googleapis.com/a1aa/image/-lCRm1eJobDEWgjHF4CoFNDqhZW1Aw4gd1gC6mEHIyE.jpg" />
+                                        <span>Proyecto 3</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">Detenido</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <!-- Notificaciones -->
+                        <div class="col-span-1 bg-white p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold mb-4">Notificaciones</h2>
+                            <ul class="space-y-2">
+                                <li class="flex items-center justify-between p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
+                                    <span>Notificación 1</span>
+                                    <span class="text-sm text-gray-500">Hace 1 hora</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
+                                    <span>Notificación 2</span>
+                                    <span class="text-sm text-gray-500">Hace 2 horas</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
+                                    <span>Notificación 3</span>
+                                    <span class="text-sm text-gray-500">Hace 3 horas</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <!-- Calendario y Actividades para Hoy -->
+                        <div class="col-span-2 bg-white p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold mb-4">Calendario y Actividades para Hoy</h2>
+                            <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                                <iframe frameborder="0" height="300" scrolling="no" src="https://calendar.google.com/calendar/embed?src=en.indian%23holiday%40group.v.calendar.google.com&amp;ctz=Asia%2FKolkata" style="border: 0" width="100%"></iframe>
+                            </div>
+                            <ul class="space-y-2">
+                                <li class="flex items-center justify-between p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
+                                    <span>Reunión con el equipo</span>
+                                    <span class="text-sm text-gray-500">10:00 AM</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
+                                    <span>Revisión de proyecto</span>
+                                    <span class="text-sm text-gray-500">1:00 PM</span>
+                                </li>
+                                <li class="flex items-center justify-between p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
+                                    <span>Entrega de informe</span>
+                                    <span class="text-sm text-gray-500">3:00 PM</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Gráfico -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-2 bg-white p-6 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold mb-4">Gráfico</h2>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <canvas id="bubbleChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Toggle Sidebar function
+        document.getElementById('toggleSidebar').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('sidebar-collapsed');
+        });
+
+        // Bubble Chart
+        const bubbleCtx = document.getElementById('bubbleChart').getContext('2d');
+        const bubbleChart = new Chart(bubbleCtx, {
+            type: 'bubble',
+            data: {
+                datasets: [{
+                    label: 'En curso',
+                    data: [{ x: 10, y: 20, r: 15 }],
+                    backgroundColor: '#4CAF50'
+                }, {
+                    label: 'Listo',
+                    data: [{ x: 20, y: 30, r: 10 }],
+                    backgroundColor: '#2196F3'
+                }, {
+                    label: 'Detenido',
+                    data: [{ x: 30, y: 40, r: 20 }],
+                    backgroundColor: '#FF9800'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2866 @@
+
+{% extends "dashboard/base.html" %}
+
+{% load static %}
+
+
+{% block content %}
+
+<style>
+    /* Estilos optimizados */
+    .status-badge, .priority-badge {
+        font-size: 0.6875rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .task-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background-color: white;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 0.75rem;
+        position: relative;
+    }
+
+    .task-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .kanban-column {
+        min-height: 400px;
+        max-height: 80vh;
+        width: 280px;
+        flex-shrink: 0;
+        overflow-y: auto;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .kanban-column-header {
+        padding: 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .kanban-tasks {
+        padding: 0.5rem;
+    }
+
+    /* Gantt Chart Styles */
+    .gantt-container {
+        width: 100%;
+        height: calc(100vh - 350px);
+        overflow-x: auto;
+        background-color: white;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .gantt-header {
+        display: flex;
+        position: sticky;
+        top: 0;
+        background-color: #f8fafc;
+        z-index: 10;
+        border-bottom: 1px solid #e2e8f0;
+        min-width: fit-content;
+    }
+
+    .gantt-sidebar {
+        width: 250px;
+        min-width: 250px;
+        padding: 8px 12px;
+        font-weight: 500;
+        color: #64748b;
+        background-color: #f8fafc;
+        position: sticky;
+        left: 0;
+        z-index: 11;
+        border-right: 1px solid #e2e8f0;
+    }
+
+    .gantt-timescale {
+        display: flex;
+        min-width: fit-content;
+        height: 60px;
+    }
+
+    .gantt-timescale-period {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: #64748b;
+        border-right: 1px solid #e2e8f0;
+        min-width: 60px;
+    }
+
+    .gantt-timescale-days {
+        display: flex;
+        height: 30px;
+    }
+
+    .gantt-timescale-day {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: #64748b;
+        border-right: 1px solid #e2e8f0;
+        min-width: 30px;
+    }
+
+    .gantt-body {
+        display: flex;
+        flex-direction: column;
+        min-width: fit-content;
+    }
+
+    .gantt-row {
+        display: flex;
+        height: 36px;
+        border-bottom: 1px solid #f1f5f9;
+        position: relative;
+        min-width: fit-content;
+    }
+
+    .gantt-row-item {
+        width: 250px;
+        min-width: 250px;
+        padding: 8px 12px;
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        border-right: 1px solid #e2e8f0;
+        font-size: 14px;
+    }
+
+    .gantt-row-bars {
+        position: relative;
+        height: 100%;
+        min-width: fit-content;
+    }
+
+    .gantt-bar {
+        position: absolute;
+        height: 20px;
+        border-radius: 4px;
+        top: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 2;
+    }
+
+    .gantt-bar:hover {
+        opacity: 0.9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 3;
+    }
+
+    .gantt-bar-progress {
+        position: absolute;
+        height: 100%;
+        border-radius: 4px 0 0 4px;
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .gantt-today-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #ef4444;
+        z-index: 1;
+    }
+
+    .gantt-today-label {
+        position: absolute;
+        top: -20px;
+        font-size: 10px;
+        color: #ef4444;
+        white-space: nowrap;
+        background-color: white;
+        padding: 2px 4px;
+        border-radius: 4px;
+        z-index: 1;
+    }
+
+    .gantt-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        align-items: center;
+    }
+
+    .gantt-zoom {
+        display: flex;
+        gap: 8px;
+    }
+
+    .gantt-zoom-btn {
+        padding: 6px 12px;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .gantt-zoom-btn:hover {
+        background-color: #f1f5f9;
+    }
+
+    .gantt-zoom-btn.active {
+        background-color: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .gantt-view-btn {
+        padding: 6px 12px;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .gantt-view-btn:hover {
+        background-color: #f1f5f9;
+    }
+
+    .gantt-view-btn.active {
+        background-color: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .gantt-tooltip {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 20;
+        min-width: 250px;
+        pointer-events: none;
+        font-size: 13px;
+    }
+
+    .gantt-tooltip-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #1e293b;
+    }
+
+    .gantt-tooltip-project {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+
+    .gantt-tooltip-dates {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 8px;
+        color: #475569;
+    }
+
+    .gantt-tooltip-status {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    /* Colores para estados */
+    .status-pendiente { background-color: #9CA3AF; color: white; }
+    .status-en_progreso { background-color: #3B82F6; color: white; }
+    .status-completada { background-color: #10B981; color: white; }
+    .status-rechazada { background-color: #EF4444; color: white; }
+    .status-aprobada { background-color: #8B5CF6; color: white; }
+
+    /* Colores para prioridades */
+    .priority-baja { background-color: #10B981; color: white; }
+    .priority-media { background-color: #F59E0B; color: white; }
+    .priority-alta { background-color: #F97316; color: white; }
+    .priority-urgente { background-color: #EF4444; color: white; }
+
+    /* Modal styles optimizados */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-container {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+        margin: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: translateY(20px);
+        transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.active .modal-container {
+        transform: translateY(0);
+    }
+
+    .modal-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f9fafb;
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+    }
+
+    .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #6b7280;
+        font-size: 1.25rem;
+        padding: 0.25rem;
+        transition: color 0.2s ease;
+    }
+
+    .modal-close:hover {
+        color: #4b5563;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-body-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .modal-body-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        background-color: #f9fafb;
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+    }
+
+    /* Filtros mejorados */
+    .filter-container {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .filter-select {
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: #374151;
+        min-width: 160px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Document and comment lists */
+    .document-list, .comment-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 0.5rem;
+        background-color: #f9fafb;
+    }
+
+    .document-item, .comment-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: white;
+        border-radius: 0.25rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .document-item:last-child, .comment-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    /* Dashboard container */
+    .dashboard-container {
+        min-height: calc(100vh - 4rem);
+        padding: 1.5rem;
+        background-color: #f9fafb;
+    }
+
+    .nav-link {
+        padding: 0.5rem 1rem;
+        border-bottom: 3px solid transparent;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+        color: #3B82F6;
+        border-bottom-color: #3B82F6;
+    }
+
+    .nav-link.active {
+        color: #3B82F6;
+        border-bottom-color: #3B82F6;
+    }
+
+    .stats-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .stats-card-pending {
+        background-color: #673f9f;
+    }
+    .stats-card-pending::before {
+        background-color: #5b3981;
+    }
+
+    .stats-card-inprogress {
+        background-color: #0343aa;
+    }
+    .stats-card-inprogress::before {
+        background-color: #0343aa;
+    }
+
+    .stats-card-completed {
+        background-color:#127755;
+    }
+    .stats-card-completed::before {
+        background-color: #127755;
+    }
+
+    .stats-card-overdue {
+        background-color: #ef3232;
+    }
+    .stats-card-overdue::before {
+        background-color: #ef3232;
+    }
+
+    .stats-card h3 {
+        font-size: 0.900rem;
+        color: #f5f6fa;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .stats-card div {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .stats-card i {
+        font-size: 1.25rem;
+    }
+
+    .task-actions {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .task-action-btn {
+        background: none;
+        border: none;
+        color: #9CA3AF;
+        cursor: pointer;
+        font-size: 0.75rem;
+        padding: 0.25rem;
+        transition: color 0.2s ease;
+    }
+
+    .task-action-btn:hover {
+        color: #3B82F6;
+    }
+
+    /* Botones de exportación */
+    .export-btn {
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .export-btn:hover {
+        background-color: #f3f4f6;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Mejoras para la tabla */
+    .tasks-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background-color: white;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .tasks-table th {
+        background-color: #f9fafb;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .tasks-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .tasks-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .tasks-table tr:hover td {
+        background-color: #f9fafb;
+    }
+
+    /* Scrollbar personalizado */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #a1a1a1;
+    }
+
+    /* Message container */
+    .message-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 50;
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .message {
+        padding: 0.75rem 1rem;
+        border-radius: 0.375rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .message-success {
+        background-color: #D1FAE5;
+        color: #065F46;
+        border-left: 4px solid #10B981;
+    }
+
+    .message-error {
+        background-color: #FEE2E2;
+        color: #B91C1C;
+        border-left: 4px solid #EF4444;
+    }
+
+    .message-info {
+        background-color: #DBEAFE;
+        color: #1E40AF;
+        border-left: 4px solid #3B82F6;
+    }
+
+    .message-warning {
+        background-color: #FEF3C7;
+        color: #92400E;
+        border-left: 4px solid #F59E0B;
+    }
+
+    /* Kanban column colors */
+    .kanban-pendiente {
+        background-color: #F3F4F6;
+    }
+    .kanban-pendiente .kanban-column-header {
+        background-color: #9CA3AF;
+        color: white;
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .kanban-en_progreso {
+        background-color: #EFF6FF;
+    }
+    .kanban-en_progreso .kanban-column-header {
+        background-color: #3B82F6;
+        color: white;
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .kanban-completada {
+        background-color: #ECFDF5;
+    }
+    .kanban-completada .kanban-column-header {
+        background-color: #10B981;
+        color: white;
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .kanban-rechazada {
+        background-color: #FEF2F2;
+    }
+    .kanban-rechazada .kanban-column-header {
+        background-color: #EF4444;
+        color: white;
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .kanban-aprobada {
+        background-color: #F5F3FF;
+    }
+    .kanban-aprobada .kanban-column-header {
+        background-color: #8B5CF6;
+        color: white;
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Status dropdown */
+    .status-dropdown {
+        position: absolute;
+        background-color: white;
+        border-radius: 0.375rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 50;
+        min-width: 180px;
+        border: 1px solid #e5e7eb;
+        display: none;
+    }
+
+    .status-dropdown.active {
+        display: block;
+    }
+
+    .status-option {
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .status-option:hover {
+        background-color: #f9fafb;
+    }
+
+    .status-option-pendiente {
+        color: #6B7280;
+    }
+    .status-option-pendiente i {
+        color: #9CA3AF;
+    }
+
+    .status-option-en_progreso {
+        color: #1E40AF;
+    }
+    .status-option-en_progreso i {
+        color: #3B82F6;
+    }
+
+    .status-option-completada {
+        color: #065F46;
+    }
+    .status-option-completada i {
+        color: #10B981;
+    }
+
+    .status-option-rechazada {
+        color: #B91C1C;
+    }
+    .status-option-rechazada i {
+        color: #EF4444;
+    }
+
+    .status-option-aprobada {
+        color: #5B21B6;
+    }
+    .status-option-aprobada i {
+        color: #8B5CF6;
+    }
+
+    /* Confirm modal */
+    .confirm-modal {
+        max-width: 400px;
+    }
+
+    .confirm-modal-body {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .confirm-modal-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .confirm-modal-icon.warning {
+        color: #F59E0B;
+    }
+
+    .confirm-modal-icon.danger {
+        color: #EF4444;
+    }
+
+    .confirm-modal-footer {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .confirm-btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .confirm-btn-cancel {
+        background-color: #E5E7EB;
+        color: #4B5563;
+    }
+
+    .confirm-btn-cancel:hover {
+        background-color: #D1D5DB;
+    }
+
+    .confirm-btn-confirm {
+        background-color: #EF4444;
+        color: white;
+    }
+
+    .confirm-btn-confirm:hover {
+        background-color: #DC2626;
+    }
+
+    /* Calendar styles */
+    .calendar-view {
+        min-height: 600px;
+    }
+
+    .fc {
+        font-family: inherit;
+    }
+
+    .fc-header-toolbar {
+        padding: 10px;
+        background-color: #f9fafb;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .fc-button {
+        background-color: #3b82f6 !important;
+        border: none !important;
+        color: white !important;
+    }
+</style>
+
+<!-- CDN Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<main class="font-sans">
+    <!-- Message Container -->
+    <div id="message-container" class="message-container hidden"></div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+        <!-- Project Header -->
+       <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-4">
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-800">{{ proyecto.nombre }} - Gestión de Tareas</h1>
+                    <p class="text-sm text-gray-500">{{ request.user.get_full_name }} ({{ request.user.get_rol_display }})</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex space-x-6 mb-4 border-b border-gray-200 pb-1">
+            <a href="#" class="nav-link active" data-section="tabla">Tabla</a>
+            <a href="#" class="nav-link" data-section="kanban">Kanban</a>
+            <a href="#" class="nav-link" data-section="gantt">Gantt</a>
+            <a href="#" class="nav-link" data-section="grafico">Gráficos</a>
+            <a href="#" class="nav-link" data-section="calendario">Calendario</a>
+        </div>
+
+        <!-- Table Section -->
+<!-- Table Section -->
+        <div id="tabla-section" class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <div class="filter-container">
+                    <div class="relative">
+                        <select id="status-filter" class="filter-select">
+                            <option value="">Todos los estados</option>
+                            {% for value, label in Tarea.ESTADOS_TAREA %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="relative">
+                        <select id="priority-filter" class="filter-select">
+                            <option value="">Todas las prioridades</option>
+                            {% for value, label in Tarea.PRIORIDADES %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% if request.user.rol == 'jefe_proyectos' %}
+                <button onclick="views.showTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i> Nueva Tarea
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>Tarea</th>
+                            <th>Asignado a</th>
+                            <th>Estado</th>
+                            <th>Prioridad</th>
+                            <th>Fecha límite</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasks-table-body">
+                        <!-- Tasks will be loaded here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Kanban Section -->
+        <div id="kanban-section" class="hidden mb-4">
+            <div class="flex space-x-4 overflow-x-auto pb-4">
+                <!-- Pending Column -->
+                <div id="kanban-pendiente" data-status="pendiente" class="kanban-column kanban-pendiente">
+                    <div class="kanban-column-header">
+                        <h2 class="text-sm font-semibold flex items-center">
+                            <span class="bg-white text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="pending-count">0</span>
+                            Pendiente
+                        </h2>
+                    </div>
+                    <div class="kanban-tasks">
+                        <!-- Tasks will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- In Progress Column -->
+                <div id="kanban-en_progreso" data-status="en_progreso" class="kanban-column kanban-en_progreso">
+                    <div class="kanban-column-header">
+                        <h2 class="text-sm font-semibold flex items-center">
+                            <span class="bg-white text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="en_progreso-count">0</span>
+                            En Progreso
+                        </h2>
+                    </div>
+                    <div class="kanban-tasks">
+                        <!-- Tasks will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Completed Column -->
+                <div id="kanban-completada" data-status="completada" class="kanban-column kanban-completada">
+                    <div class="kanban-column-header">
+                        <h2 class="text-sm font-semibold flex items-center">
+                            <span class="bg-white text-green-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="completada-count">0</span>
+                            Completada
+                        </h2>
+                    </div>
+                    <div class="kanban-tasks">
+                        <!-- Tasks will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Rejected Column -->
+                <div id="kanban-rechazada" data-status="rechazada" class="kanban-column kanban-rechazada">
+                    <div class="kanban-column-header">
+                        <h2 class="text-sm font-semibold flex items-center">
+                            <span class="bg-white text-red-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="rechazada-count">0</span>
+                            Rechazada
+                        </h2>
+                    </div>
+                    <div class="kanban-tasks">
+                        <!-- Tasks will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Approved Column -->
+                <div id="kanban-aprobada" data-status="aprobada" class="kanban-column kanban-aprobada">
+                    <div class="kanban-column-header">
+                        <h2 class="text-sm font-semibold flex items-center">
+                            <span class="bg-white text-purple-700 rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2" id="aprobada-count">0</span>
+                            Aprobada
+                        </h2>
+                    </div>
+                    <div class="kanban-tasks">
+                        <!-- Tasks will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gantt Section -->
+        <div id="gantt-section" class="hidden mb-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Diagrama de Gantt</h2>
+                <div class="flex gap-2">
+                    <button id="export-gantt" class="export-btn">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <div class="gantt-controls">
+                    <div class="gantt-zoom">
+                        <button class="gantt-zoom-btn" data-zoom="days">Días</button>
+                        <button class="gantt-zoom-btn active" data-zoom="weeks">Semanas</button>
+                        <button class="gantt-zoom-btn" data-zoom="months">Meses</button>
+                    </div>
+                    <div>
+                        <button class="gantt-view-btn active" data-view="tasks">Tareas</button>
+                    </div>
+                </div>
+
+                <div class="gantt-container" id="gantt-chart">
+                    <!-- Gantt chart will be generated here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div id="grafico-section" class="hidden mb-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Gráficos de Progreso</h2>
+                <div class="flex gap-2">
+                    <button id="export-status-chart" class="export-btn">
+                        <i class="fas fa-file-pdf"></i> Estado
+                    </button>
+                    <button id="export-priority-chart" class="export-btn">
+                        <i class="fas fa-file-pdf"></i> Prioridad
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded border border-gray-200 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3">Tareas por Estado</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="bg-white p-4 rounded border border-gray-200 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3">Tareas por Prioridad</h3>
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Section -->
+        <div id="calendario-section" class="hidden mb-4">
+            <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Calendario</h2>
+                <div id="calendar" class="calendar-view"></div>
+            </div>
+        </div>
+
+        <!-- Task Modal (Create/Edit) -->
+        <div id="task-modal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="task-modal-title">Nueva Tarea</h3>
+                    <button class="modal-close" onclick="utils.hideModal('task')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="task-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="proyecto" value="{{ proyecto.id }}">
+                        <input type="hidden" name="id" id="task-id">
+
+                        <div class="modal-body-section">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Título*</label>
+                            <input type="text" name="titulo" id="task-titulo" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div class="modal-body-section">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                            <textarea name="descripcion" id="task-descripcion" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="modal-body-section">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad*</label>
+                                <select name="prioridad" id="task-prioridad" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    {% for value, label in Tarea.PRIORIDADES %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="modal-body-section">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado*</label>
+                                <select name="estado" id="task-estado" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    {% for value, label in Tarea.ESTADOS_TAREA %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="modal-body-section">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Asignado a</label>
+                                <select name="asignado_a" id="task-asignado"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Seleccionar...</option>
+                                    {% for usuario in proyecto.integrantes.all %}
+                                        <option value="{{ usuario.id }}">{{ usuario.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="modal-body-section">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha límite</label>
+                                <input type="datetime-local" name="fecha_tope" id="task-fecha-tope"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" onclick="utils.hideModal('task')"
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm hover:bg-gray-300">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
+                                Guardar Tarea
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Details Modal -->
+        <div id="task-details-modal" class="modal-overlay">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="task-details-name">Detalles de la Tarea</h3>
+                    <button class="modal-close" onclick="utils.hideModal('taskDetails')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="modal-body-section">
+                                <h3 class="text-sm font-medium text-gray-700 mb-2">Descripción</h3>
+                                <p class="text-sm text-gray-800" id="task-details-description"></p>
+                            </div>
+
+                            <div class="modal-body-section">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-700 mb-1">Asignado a</h3>
+                                        <p class="text-sm text-gray-800" id="task-details-assignee"></p>
+                                    </div>
+
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-700 mb-1">Estado</h3>
+                                        <span id="task-details-status" class="status-badge"></span>
+                                    </div>
+
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-700 mb-1">Prioridad</h3>
+                                        <span id="task-details-priority" class="priority-badge"></span>
+                                    </div>
+
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-700 mb-1">Fecha límite</h3>
+                                        <p class="text-sm text-gray-800" id="task-details-due-date"></p>
+                                    </div>
+
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-700 mb-1">Creada</h3>
+                                        <p class="text-sm text-gray-800" id="task-details-created"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-body-section">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-sm font-medium text-gray-700">Documentos adjuntos</h3>
+                                    <button onclick="views.showDocumentModal(state.currentTaskDetails.id)" class="text-blue-500 hover:text-blue-700 text-sm">
+                                        <i class="fas fa-plus mr-1"></i> Agregar
+                                    </button>
+                                </div>
+                                <div id="task-documents-list" class="document-list">
+                                    <!-- Documents will be loaded here dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="modal-body-section">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-sm font-medium text-gray-700">Comentarios</h3>
+                                    <button onclick="views.showCommentModal(state.currentTaskDetails.id)" class="text-blue-500 hover:text-blue-700 text-sm">
+                                        <i class="fas fa-plus mr-1"></i> Agregar
+                                    </button>
+                                </div>
+                                <div id="task-comments-list" class="comment-list">
+                                    <!-- Comments will be loaded here dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="utils.hideModal('taskDetails')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Modal -->
+        <div id="document-modal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Agregar Documento</h3>
+                    <button class="modal-close" onclick="utils.hideModal('document')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="document-form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tarea_id" id="document-tarea-id">
+                        <div class="modal-body-section">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del documento</label>
+                            <input type="text" name="nombre" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="modal-body-section">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
+                            <input type="file" name="archivo" required
+                                   class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                        <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 mt-4">
+                            Subir Documento
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comment Modal -->
+        <div id="comment-modal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Agregar Comentario</h3>
+                    <button class="modal-close" onclick="utils.hideModal('comment')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="comment-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="tarea_id" id="comment-tarea-id">
+                        <div class="modal-body-section">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Comentario</label>
+                            <textarea name="contenido" rows="4" required
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 mt-4">
+                            Enviar Comentario
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Delete Modal -->
+        <div id="confirm-delete-modal" class="modal-overlay">
+            <div class="modal-container confirm-modal">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="confirm-delete-title">Confirmar Eliminación</h3>
+                    <button class="modal-close" onclick="utils.hideModal('confirmDelete')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="confirm-modal-body">
+                    <div class="confirm-modal-icon danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <p id="confirm-delete-message" class="text-gray-700 mb-4">¿Estás seguro de que deseas eliminar esta tarea?</p>
+                    <div class="confirm-modal-footer">
+                        <button onclick="utils.hideModal('confirmDelete')" class="confirm-btn confirm-btn-cancel">Cancelar</button>
+                        <button id="confirm-delete-button" class="confirm-btn confirm-btn-confirm">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // App State
+    const state = {
+        activeSection: 'tabla',
+        currentProjectId: {{ proyecto.id }},
+        currentUserId: {{ request.user.id }},
+        currentUserRole: "{{ request.user.rol }}",  // Nuevo: almacenar rol del usuario
+        isLoading: false,
+        allTasks: [],
+        userRoles: {},
+        isProjectLeader: {% if request.user.rol|lower == 'jefe_proyectos' %} true {% else %} false {% endif %},  // Verificar rol directamente // Nuevo: verificar rol directamente
+        currentTaskDetails: null,
+        calendar: null
+    };
+
+    // DOM Elements
+    const elements = {
+        sections: {
+            tabla: document.getElementById('tabla-section'),
+            kanban: document.getElementById('kanban-section'),
+            gantt: document.getElementById('gantt-section'),
+            grafico: document.getElementById('grafico-section'),
+            calendario: document.getElementById('calendario-section')
+        },
+        modals: {
+            task: {
+                overlay: document.getElementById('task-modal'),
+                form: document.getElementById('task-form'),
+                title: document.getElementById('task-modal-title'),
+                id: document.getElementById('task-id'),
+                titulo: document.getElementById('task-titulo'),
+                descripcion: document.getElementById('task-descripcion'),
+                prioridad: document.getElementById('task-prioridad'),
+                estado: document.getElementById('task-estado'),
+                asignado: document.getElementById('task-asignado'),
+                fechaTope: document.getElementById('task-fecha-tope')
+            },
+            taskDetails: {
+                overlay: document.getElementById('task-details-modal'),
+                name: document.getElementById('task-details-name'),
+                description: document.getElementById('task-details-description'),
+                status: document.getElementById('task-details-status'),
+                priority: document.getElementById('task-details-priority'),
+                assignee: document.getElementById('task-details-assignee'),
+                dueDate: document.getElementById('task-details-due-date'),
+                created: document.getElementById('task-details-created'),
+                documentsList: document.getElementById('task-documents-list'),
+                commentsList: document.getElementById('task-comments-list')
+            },
+            document: {
+                overlay: document.getElementById('document-modal'),
+                form: document.getElementById('document-form'),
+                tareaId: document.getElementById('document-tarea-id')
+            },
+            comment: {
+                overlay: document.getElementById('comment-modal'),
+                form: document.getElementById('comment-form'),
+                tareaId: document.getElementById('comment-tarea-id')
+            },
+            confirmDelete: {
+                overlay: document.getElementById('confirm-delete-modal'),
+                title: document.getElementById('confirm-delete-title'),
+                message: document.getElementById('confirm-delete-message'),
+                button: document.getElementById('confirm-delete-button')
+            }
+        },
+        charts: {
+            status: null,
+            priority: null
+        },
+        filters: {
+            status: document.getElementById('status-filter'),
+            priority: document.getElementById('priority-filter')
+        },
+        stats: {
+            pending: document.getElementById('pending-count'),
+            inProgress: document.getElementById('en_progreso-count'),
+            completed: document.getElementById('completada-count'),
+            rejected: document.getElementById('rechazada-count'),
+            approved: document.getElementById('aprobada-count')
+        }
+    };
+
+    // Utility Functions
+    const utils = {
+        getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        },
+
+        showLoading() {
+            state.isLoading = true;
+            // Show loading indicator
+        },
+
+        hideLoading() {
+            state.isLoading = false;
+            // Hide loading indicator
+        },
+
+        showAlert(message, type = 'success') {
+            const container = document.getElementById('message-container');
+            if (!container) return;
+
+            container.classList.remove('hidden');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.innerHTML = `
+                <span>${message}</span>
+                <button class="text-gray-500 hover:text-gray-700" onclick="this.parentElement.remove(); if(!document.getElementById('message-container').children.length) document.getElementById('message-container').classList.add('hidden')">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            container.appendChild(messageDiv);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+                if (!container.children.length) {
+                    container.classList.add('hidden');
+                }
+            }, 5000);
+        },
+
+        formatDate(dateString) {
+            if (!dateString) return 'Sin fecha';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        },
+
+        formatDateTime(dateString) {
+            if (!dateString) return 'Sin fecha';
+            const date = new Date(dateString);
+            return date.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+
+        showModal(modalType) {
+            if (elements.modals[modalType] && elements.modals[modalType].overlay) {
+                elements.modals[modalType].overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        },
+
+        hideModal(modalType) {
+            if (elements.modals[modalType] && elements.modals[modalType].overlay) {
+                elements.modals[modalType].overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        },
+
+        updateNavLinks() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.getAttribute('data-section') === state.activeSection) {
+                    link.classList.add('active');
+                    link.classList.remove('text-gray-500');
+                } else {
+                    link.classList.remove('active');
+                    link.classList.add('text-gray-500');
+                }
+            });
+        },
+
+        showPermissionError() {
+            this.showAlert('No tienes permisos para realizar esta acción', 'error');
+        },
+
+        filterTasks(tasks) {
+            const statusFilter = elements.filters.status ? elements.filters.status.value : '';
+            const priorityFilter = elements.filters.priority ? elements.filters.priority.value : '';
+
+            return tasks.filter(task => {
+                const matchesStatus = !statusFilter || task.estado === statusFilter;
+                const matchesPriority = !priorityFilter || task.prioridad === priorityFilter;
+
+                return matchesStatus && matchesPriority;
+            });
+        },
+
+        isOverdue(task) {
+            if (!task.fecha_tope) return false;
+            const dueDate = new Date(task.fecha_tope);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return dueDate < today && task.estado !== 'completada';
+        }
+    };
+
+    // API Service
+    const api = {
+        async request(url, method = 'GET', data = null, isFormData = false) {
+    const headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+    };
+
+    if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    // Add CSRF token
+    const csrfToken = utils.getCookie('csrftoken');
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    const config = {
+        method,
+        headers,
+        credentials: 'include'
+    };
+
+    if (data) {
+        config.body = isFormData ? data : JSON.stringify(data);
+    }
+
+    try {
+        utils.showLoading();
+        const response = await fetch(url, config);
+
+        // Manejar respuesta vacía
+        if (response.status === 204) { // No Content
+            return { success: true };
+        }
+
+        // Intentar parsear JSON solo si hay contenido
+        const responseData = response.status !== 204 ? await response.json() : {};
+
+        if (!response.ok) {
+            throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        return responseData;
+    } catch (error) {
+        console.error('API Error:', error);
+        utils.showAlert(error.message || 'Error en la solicitud', 'error');
+        throw error;
+    } finally {
+        utils.hideLoading();
+    }
+},
+
+        async getTasks(projectId) {
+            return this.request(`/api/proyecto/${projectId}/tareas/`);
+        },
+
+        async getTask(taskId) {
+            return this.request(`/api/tarea/${taskId}/`);
+        },
+
+        async createTask(data) {
+            return this.request('/api/tarea/', 'POST', data);
+        },
+
+        async updateTask(taskId, data) {
+            return this.request(`/api/tarea/${taskId}/editar/`, 'PUT', data);
+        },
+
+        async deleteTask(taskId) {
+            return this.request(`/api/tarea/${taskId}/eliminar/`, 'DELETE');
+        },
+
+        async addComment(taskId, formData) {
+            return this.request(`/tarea/${taskId}/agregar-comentario/`, 'POST', formData, true);
+        },
+
+        async uploadDocument(taskId, formData) {
+            return this.request(`/tarea/${taskId}/agregar-documento/`, 'POST', formData, true);
+        },
+
+        async changeTaskStatus(taskId, newStatus) {
+            try {
+                const formData = new FormData();
+                formData.append('estado', newStatus);
+                formData.append('csrfmiddlewaretoken', utils.getCookie('csrftoken'));
+
+                utils.showLoading();
+
+                const response = await fetch(`/api/tarea/${taskId}/cambiar-estado/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    utils.showAlert(`Estado cambiado correctamente`);
+
+                    // 1. Obtener datos frescos del servidor
+                    const updatedTasks = await api.getTasks(state.currentProjectId);
+                    state.allTasks = updatedTasks;
+
+                    // 2. Actualizar todas las secciones SILENCIOSAMENTE
+                    views.updateTaskTable(utils.filterTasks(updatedTasks));
+                    views.updateKanbanBoard(utils.filterTasks(updatedTasks));
+                    views.updateGanttChart(utils.filterTasks(updatedTasks));
+                    views.updateCharts(utils.filterTasks(updatedTasks));
+                    views.updateCalendar(updatedTasks);
+
+                } else {
+                    utils.showAlert(data.error || 'Error al cambiar estado', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                utils.showAlert('Error al cambiar el estado', 'error');
+            } finally {
+                utils.hideLoading();
+            }
+        },
+    };
+
+    // View Functions
+    const views = {
+        init() {
+this.initElements();
+            this.initCharts();
+            this.initCalendar();
+            this.loadTasks();
+            this.setupEventListeners();
+            this.changeSection('tabla');
+        },
+
+        initElements() {
+            // Initialize all elements
+            Object.keys(elements.sections).forEach(section => {
+                if (!elements.sections[section]) {
+                    elements.sections[section] = document.getElementById(`${section}-section`);
+                }
+            });
+
+            // Initialize modals
+            Object.keys(elements.modals).forEach(modalType => {
+                if (typeof elements.modals[modalType] === 'object') {
+                    Object.keys(elements.modals[modalType]).forEach(part => {
+                        if (!elements.modals[modalType][part]) {
+                            elements.modals[modalType][part] = document.getElementById(`${modalType}-${part}`);
+                        }
+                    });
+                }
+            });
+
+            // Initialize charts
+            Object.keys(elements.charts).forEach(chart => {
+                if (!elements.charts[chart]) {
+                    elements.charts[chart] = document.getElementById(`${chart}Chart`);
+                }
+            });
+
+            // Initialize filters
+            Object.keys(elements.filters).forEach(filter => {
+                if (!elements.filters[filter]) {
+                    elements.filters[filter] = document.getElementById(`${filter}-filter`);
+                }
+            });
+
+            // Initialize stats
+            Object.keys(elements.stats).forEach(stat => {
+                if (!elements.stats[stat]) {
+                    elements.stats[stat] = document.getElementById(`${stat}-count`);
+                }
+            });
+
+            // Confirm delete button
+            if (elements.modals.confirmDelete.button) {
+                elements.modals.confirmDelete.button.addEventListener('click', () => {
+                    if (state.currentTaskDetails) {
+                        this.deleteTask(state.currentTaskDetails.id);
+                    }
+                });
+            }
+        },
+
+        async loadUserRoles() {
+            try {
+                const response = await fetch(`/api/proyecto/${state.currentProjectId}/roles/`);
+                if (response.ok) {
+                    const roles = await response.json();
+                    state.userRoles = roles;
+                    state.isProjectLeader = roles[state.currentUserId.toString()] === 'jefe_proyectos';
+                }
+            } catch (error) {
+                console.error('Error al cargar roles de usuario:', error);
+            }
+        },
+
+        initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            if (calendarEl) {
+                state.calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    locale: 'es',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    buttonText: {
+                        today: 'Hoy',
+                        month: 'Mes',
+                        week: 'Semana',
+                        day: 'Día'
+                    },
+                    events: [],
+                    eventClick: (info) => {
+                        this.showTaskDetailsModal(info.event.extendedProps.taskId);
+                    },
+                    eventBackgroundColor: '#3B82F6',
+                    eventBorderColor: '#2563EB',
+                    eventTextColor: '#FFFFFF'
+                });
+            }
+        },
+
+        setupEventListeners() {
+            // Navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.changeSection(link.dataset.section);
+                });
+            });
+
+            // Filter events
+            if (elements.filters.status) {
+                elements.filters.status.addEventListener('change', () => this.applyFilters());
+            }
+
+            if (elements.filters.priority) {
+                elements.filters.priority.addEventListener('change', () => this.applyFilters());
+            }
+
+            // Task form submit
+            if (elements.modals.task.form) {
+                elements.modals.task.form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await this.handleTaskFormSubmit();
+                });
+            }
+
+            // Document form submit
+            if (elements.modals.document.form) {
+                elements.modals.document.form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(elements.modals.document.form);
+                    const taskId = formData.get('tarea_id');
+
+                    try {
+                        const response = await api.uploadDocument(taskId, formData);
+                        utils.showAlert('Documento agregado correctamente');
+                        elements.modals.document.form.reset();
+                        utils.hideModal('document');
+
+                        // Refresh task documents
+                        if (state.currentTaskDetails) {
+                            const updatedTask = await api.getTask(state.currentTaskDetails.id);
+                            this.loadTaskDocuments(updatedTask);
+                        }
+                    } catch (error) {
+                        // El error ya se maneja en la función request
+                    }
+                });
+            }
+
+            // Comment form submit
+            if (elements.modals.comment.form) {
+                elements.modals.comment.form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(elements.modals.comment.form);
+                    const taskId = formData.get('tarea_id');
+
+                    try {
+                        const response = await api.addComment(taskId, formData);
+                        utils.showAlert('Comentario agregado correctamente');
+                        elements.modals.comment.form.reset();
+                        utils.hideModal('comment');
+
+                        // Refresh task comments
+                        if (state.currentTaskDetails) {
+                            const updatedTask = await api.getTask(state.currentTaskDetails.id);
+                            this.loadTaskComments(updatedTask);
+                        }
+                    } catch (error) {
+                        // El error ya se maneja en la función request
+                    }
+                });
+            }
+
+            // Export Gantt to PDF
+            if (document.getElementById('export-gantt')) {
+                document.getElementById('export-gantt').addEventListener('click', () => {
+                    this.exportGanttToPDF();
+                });
+            }
+
+            // Export status chart to PDF
+            if (document.getElementById('export-status-chart')) {
+                document.getElementById('export-status-chart').addEventListener('click', () => {
+                    this.exportChartToPDF('statusChart', 'grafico-estado-tareas.pdf');
+                });
+            }
+
+            // Export priority chart to PDF
+            if (document.getElementById('export-priority-chart')) {
+                document.getElementById('export-priority-chart').addEventListener('click', () => {
+                    this.exportChartToPDF('priorityChart', 'grafico-prioridad-tareas.pdf');
+                });
+            }
+        },
+
+        applyFilters() {
+            const filteredTasks = utils.filterTasks(state.allTasks);
+            this.updateViews(filteredTasks);
+        },
+
+        updateViews(tasks) {
+            this.updateTaskTable(tasks);
+            this.updateKanbanBoard(tasks);
+            this.updateCharts(tasks);
+            this.updateGanttChart(tasks);
+            this.updateCalendar(tasks);
+            this.updateStats();
+        },
+
+        changeSection(section) {
+            state.activeSection = section;
+
+            // Hide all sections
+            Object.values(elements.sections).forEach(sectionEl => {
+                if (sectionEl) sectionEl.classList.add('hidden');
+            });
+
+            // Show active section
+            if (elements.sections[section]) {
+                elements.sections[section].classList.remove('hidden');
+            }
+
+            // Update navigation
+            utils.updateNavLinks();
+
+            // Special handling for calendar
+            if (section === 'calendario' && state.calendar) {
+                state.calendar.render();
+            }
+        },
+
+        initCharts() {
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                elements.charts.status = new Chart(statusCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pendientes', 'En Progreso', 'Completadas', 'Rechazadas', 'Aprobadas'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#9CA3AF', // Pendientes - gris
+                                '#3B82F6', // En progreso - azul
+                                '#10B981', // Completadas - verde
+                                '#EF4444', // Rechazadas - rojo
+                                '#8B5CF6'  // Aprobadas - violeta
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Priority Chart
+            const priorityCtx = document.getElementById('priorityChart');
+            if (priorityCtx) {
+                elements.charts.priority = new Chart(priorityCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Baja', 'Media', 'Alta', 'Urgente'],
+                        datasets: [{
+                            label: 'Tareas por Prioridad',
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                '#10B981', // Baja - verde
+                                '#F59E0B', // Media - amarillo
+                                '#F97316', // Alta - naranja
+                                '#EF4444'  // Urgente - rojo
+                            ],
+                            borderColor: [
+                                '#047857',
+                                '#B45309',
+                                '#C2410C',
+                                '#B91C1C'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        },
+
+        async loadTasks() {
+            try {
+                const tasks = await api.getTasks(state.currentProjectId);
+                state.allTasks = tasks;
+                this.applyFilters();
+            } catch (error) {
+                console.error("Error al cargar tareas:", error);
+                utils.showAlert("Error al cargar las tareas", "error");
+            }
+        },
+
+        updateTaskTable(tasks) {
+            const tbody = document.getElementById('tasks-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            tasks.forEach(task => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.dataset.taskId = task.id;
+
+                // Generar acciones solo si es jefe de proyecto
+                const actionsHTML = state.isProjectLeader ? `
+                    <div class="flex justify-end space-x-2">
+                        <button onclick="views.showEditTaskModal(${task.id})" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="views.showConfirmDeleteModal(${task.id}, '${task.titulo}')" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                ` : '';
+
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <button onclick="views.showTaskDetailsModal(${task.id})" class="text-blue-500 hover:text-blue-700 mr-2">
+                            <i class="fas fa-eye text-gray-400"></i>
+                        </button>
+                        ${task.titulo}
+                    </td>
+                    <td class="py-3 px-4">
+                        ${task.asignado_a ? task.asignado_a.nombre_completo : 'Sin asignar'}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="status-badge status-${task.estado}">${task.get_estado_display}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="priority-badge priority-${task.prioridad}">${task.get_prioridad_display}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${utils.formatDate(task.fecha_tope)}
+                        ${utils.isOverdue(task) ? '<span class="text-red-500 text-xs ml-1">(Vencida)</span>' : ''}
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        ${actionsHTML}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        },
+
+        updateKanbanBoard(tasks) {
+            const statuses = {
+                'pendiente': document.getElementById('kanban-pendiente'),
+                'en_progreso': document.getElementById('kanban-en_progreso'),
+                'completada': document.getElementById('kanban-completada'),
+                'rechazada': document.getElementById('kanban-rechazada'),
+                'aprobada': document.getElementById('kanban-aprobada')
+            };
+
+            // Clear columns
+            Object.values(statuses).forEach(column => {
+                if (column) {
+                    const tasksContainer = column.querySelector('.kanban-tasks');
+                    if (tasksContainer) tasksContainer.innerHTML = '';
+                }
+            });
+
+            // Add tasks to columns
+            tasks.forEach(task => {
+                const column = statuses[task.estado];
+                if (column) {
+                    const tasksContainer = column.querySelector('.kanban-tasks');
+                    if (tasksContainer) {
+                        const taskCard = document.createElement('div');
+                        taskCard.className = 'task-card relative';
+                        taskCard.dataset.taskId = task.id;
+                        taskCard.innerHTML = this.getKanbanCardHTML(task);
+                        tasksContainer.appendChild(taskCard);
+                    }
+                }
+            });
+
+            // Update counts
+            this.updateStats();
+        },
+
+        getKanbanCardHTML(task) {
+            const isProjectLeader = state.userRoles[task.proyecto.id] === 'jefe_proyectos';
+
+            // Mostrar acciones solo si es jefe de proyecto
+            const actionsHTML = state.isProjectLeader ? `
+                <div class="task-actions">
+                    <button class="task-action-btn" onclick="views.showDocumentModal(${task.id})" title="Agregar documento">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <button class="task-action-btn" onclick="views.showCommentModal(${task.id})" title="Agregar comentario">
+                        <i class="fas fa-comment"></i>
+                    </button>
+                    <button class="task-action-btn" onclick="views.showTaskDetailsModal(${task.id})" title="Ver detalles">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="task-action-btn" onclick="views.showStatusOptions(${task.id}, this)" title="Cambiar estado">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            ` : '';
+
+            return `
+                ${actionsHTML}
+                <h3 class="text-sm font-medium text-gray-800 mt-3"> <span class="text-ms text-gray-500"> Titulo:</span> ${task.titulo_corto}</h3>
+                <div class="flex items-center justify-between mt-2"></div>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-gray-500">${utils.formatDate(task.fecha_tope)}</span>
+                    ${utils.isOverdue(task) ? '<span class="text-xs text-red-500">Vencida</span>' : ''}
+                    <span class="priority-badge priority-${task.prioridad}">${task.get_prioridad_display}</span>
+                </div>
+            `;
+        },
+
+        showStatusOptions(taskId, buttonElement) {
+            // Hide any open dropdowns
+            document.querySelectorAll('.status-dropdown').forEach(d => d.remove());
+
+            // Get the task
+            const task = state.allTasks.find(t => t.id == taskId);
+            if (!task) return;
+
+            // Check permissions
+            const isProjectLeader = state.userRoles[task.proyecto.id] === 'jefe';
+
+            // Definir las transiciones de estado permitidas
+            const allowedTransitions = {
+                'pendiente': ['en_progreso', 'completada', 'rechazada', 'aprobada'],
+                'en_progreso': ['pendiente', 'completada', 'rechazada'],
+                'completada': isProjectLeader ? ['pendiente', 'en_progreso', 'rechazada'] : ['pendiente', 'en_progreso'],
+                'rechazada': isProjectLeader ? ['pendiente', 'en_progreso'] : [],
+                'aprobada': isProjectLeader ? ['pendiente', 'en_progreso'] : []
+            };
+
+            // Crear opciones basadas en transiciones permitidas
+            const statusOptions = [
+                {value: 'pendiente', label: 'Pendiente', icon: 'fas fa-clock'},
+                {value: 'en_progreso', label: 'En Progreso', icon: 'fas fa-spinner'},
+                {value: 'completada', label: 'Completada', icon: 'fas fa-check-circle'},
+                {value: 'rechazada', label: 'Rechazada', icon: 'fas fa-times-circle'},
+                {value: 'aprobada', label: 'Aprobada', icon: 'fas fa-thumbs-up'}
+            ];
+
+            // Filtrar solo las opciones permitidas
+            const filteredOptions = statusOptions.filter(opt =>
+                opt.value !== task.estado &&
+                allowedTransitions[task.estado]?.includes(opt.value)
+            );
+
+            if (filteredOptions.length === 0) {
+                utils.showAlert('No hay más estados disponibles para esta tarea', 'info');
+                return;
+            }
+
+            // Create dropdown
+            const dropdown = document.createElement('div');
+            dropdown.className = 'status-dropdown active';
+
+            // Add options
+            filteredOptions.forEach(option => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'status-option status-option-' + option.value;
+                optionElement.dataset.value = option.value;
+                optionElement.innerHTML = `
+                    <i class="${option.icon}"></i>
+                    <span>${option.label}</span>
+                `;
+
+                optionElement.addEventListener('click', async () => {
+                    try {
+                        // Mostrar confirmación para ciertos estados
+                        if (option.value === 'rechazada' || option.value === 'aprobada') {
+                            const confirmed = confirm(`¿Estás seguro de marcar esta tarea como "${option.label}"?`);
+                            if (!confirmed) return;
+                        }
+
+                        await api.changeTaskStatus(taskId, option.value);
+                    } catch (error) {
+                        console.error('Error al cambiar estado:', error);
+                    }
+                    dropdown.remove();
+                });
+                dropdown.appendChild(optionElement);
+            });
+
+            // Posicionar el dropdown
+            const buttonRect = buttonElement.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${buttonRect.bottom + window.scrollY}px`;
+            dropdown.style.right = `${window.innerWidth - buttonRect.right}px`;
+
+            // Agregar al documento
+            document.body.appendChild(dropdown);
+
+            // Cerrar al hacer clic fuera
+            setTimeout(() => {
+                const closeHandler = (e) => {
+                    if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                document.addEventListener('click', closeHandler);
+            }, 0);
+        },
+
+        updateCharts(tasks) {
+            // Count tasks by status
+            const statusCounts = {
+                'pendiente': 0,
+                'en_progreso': 0,
+                'completada': 0,
+                'rechazada': 0,
+                'aprobada': 0
+            };
+
+            tasks.forEach(task => {
+                statusCounts[task.estado]++;
+            });
+
+            // Update status chart
+            if (elements.charts.status) {
+                elements.charts.status.data.datasets[0].data = Object.values(statusCounts);
+                elements.charts.status.update();
+            }
+
+            // Count tasks by priority
+            const priorityCounts = {
+                'baja': 0,
+                'media': 0,
+                'alta': 0,
+                'urgente': 0
+            };
+
+            tasks.forEach(task => {
+                priorityCounts[task.prioridad]++;
+            });
+
+            // Update priority chart
+            if (elements.charts.priority) {
+                elements.charts.priority.data.datasets[0].data = Object.values(priorityCounts);
+                elements.charts.priority.update();
+            }
+        },
+
+        updateCalendar(tasks) {
+            if (!state.calendar) return;
+
+            const events = tasks.map(task => ({
+                title: task.titulo,
+                start: task.fecha_tope,
+                extendedProps: {
+                    taskId: task.id
+                },
+                backgroundColor: this.getStatusColor(task.estado),
+                borderColor: this.getStatusColor(task.estado)
+            }));
+
+            state.calendar.removeAllEvents();
+            state.calendar.addEventSource(events);
+        },
+
+        updateGanttChart(tasks) {
+            const ganttContainer = document.getElementById('gantt-chart');
+            if (!ganttContainer) return;
+
+            // Clear previous content
+            ganttContainer.innerHTML = '';
+
+            // Filter tasks with dates
+            const datedTasks = tasks.filter(task => task.fecha_creacion && task.fecha_tope);
+            if (datedTasks.length === 0) {
+                ganttContainer.innerHTML = '<div class="p-8 text-center text-gray-500">No hay tareas con fechas definidas</div>';
+                return;
+            }
+
+            // Get min and max dates
+            const dates = datedTasks.map(task => ({
+                start: new Date(task.fecha_creacion),
+                end: new Date(task.fecha_tope)
+            }));
+
+            let minDate = new Date(Math.min(...dates.map(d => d.start)));
+            let maxDate = new Date(Math.max(...dates.map(d => d.end)));
+
+            // Add buffer to the timeline
+            minDate = new Date(minDate.setDate(minDate.getDate() - 7));
+            maxDate = new Date(maxDate.setDate(maxDate.getDate() + 7));
+
+            // Get current zoom level
+            const zoomLevel = document.querySelector('.gantt-zoom-btn.active')?.dataset.zoom || 'weeks';
+
+            // Calculate day width based on zoom level
+            const dayWidth = zoomLevel === 'days' ? 30 : (zoomLevel === 'weeks' ? 15 : 5);
+            const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            const totalWidth = totalDays * dayWidth;
+
+            // Create Gantt header
+            const ganttHeader = document.createElement('div');
+            ganttHeader.className = 'gantt-header';
+
+            // Create sidebar header
+            const sidebarHeader = document.createElement('div');
+            sidebarHeader.className = 'gantt-sidebar';
+            sidebarHeader.textContent = 'Tarea';
+            ganttHeader.appendChild(sidebarHeader);
+
+            // Create timescale
+            const timescale = document.createElement('div');
+            timescale.className = 'gantt-timescale';
+
+            // Generate timescale based on zoom level
+            if (zoomLevel === 'days') {
+                this.generateDayTimescale(timescale, minDate, maxDate, dayWidth);
+            } else if (zoomLevel === 'weeks') {
+                this.generateWeekTimescale(timescale, minDate, maxDate, dayWidth);
+            } else {
+                this.generateMonthTimescale(timescale, minDate, maxDate, dayWidth);
+            }
+
+            ganttHeader.appendChild(timescale);
+            ganttContainer.appendChild(ganttHeader);
+
+            // Create body
+            const ganttBody = document.createElement('div');
+            ganttBody.className = 'gantt-body';
+
+            // Create rows container
+            const rowsContainer = document.createElement('div');
+            rowsContainer.className = 'gantt-rows';
+
+            // Create rows for each task
+            datedTasks.forEach(task => {
+                // Add task name
+                const row = document.createElement('div');
+                row.className = 'gantt-row';
+
+                const rowItem = document.createElement('div');
+                rowItem.className = 'gantt-row-item';
+                rowItem.textContent = task.titulo;
+                row.appendChild(rowItem);
+
+                const rowBars = document.createElement('div');
+                rowBars.className = 'gantt-row-bars';
+                rowBars.style.minWidth = `${totalWidth}px`;
+
+                // Add bar for the task
+                const startDate = new Date(task.fecha_creacion);
+                const endDate = new Date(task.fecha_tope);
+
+                const startPosition = ((startDate - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+                const width = Math.max(10, durationDays * dayWidth);
+
+                const bar = document.createElement('div');
+                bar.className = `gantt-bar status-${task.estado}`;
+                bar.style.left = `${startPosition}px`;
+                bar.style.width = `${width}px`;
+                bar.dataset.taskId = task.id;
+
+                // Add progress if available
+                if (task.progreso && task.progreso > 0) {
+                    const progress = document.createElement('div');
+                    progress.className = 'gantt-bar-progress';
+                    progress.style.width = `${task.progreso}%`;
+                    bar.appendChild(progress);
+                }
+
+                // Add tooltip
+                bar.addEventListener('mouseenter', (e) => {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'gantt-tooltip';
+                    tooltip.innerHTML = `
+                        <div class="gantt-tooltip-title">${task.titulo}</div>
+                        <div class="gantt-tooltip-project">${task.proyecto.nombre}</div>
+                        <div class="gantt-tooltip-dates">
+                            <span>Inicio: ${utils.formatDate(task.fecha_creacion)}</span>
+                            <span>Fin: ${utils.formatDate(task.fecha_tope)}</span>
+                        </div>
+                        <div>
+                            <span class="gantt-tooltip-status status-${task.estado}">${task.get_estado_display}</span>
+                            <span class="priority-badge priority-${task.prioridad} ml-2">${task.get_prioridad_display}</span>
+                        </div>
+                    `;
+
+                    // Position tooltip
+                    const rect = bar.getBoundingClientRect();
+                    tooltip.style.left = `${rect.left}px`;
+                    tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
+                    document.body.appendChild(tooltip);
+
+                    // Store reference to remove later
+                    bar.tooltip = tooltip;
+                });
+
+                bar.addEventListener('mouseleave', () => {
+                    if (bar.tooltip) {
+                        bar.tooltip.remove();
+                        delete bar.tooltip;
+                    }
+                });
+
+                // Add click event to show details
+                bar.addEventListener('click', () => {
+                    this.showTaskDetailsModal(task.id);
+                });
+
+                rowBars.appendChild(bar);
+                row.appendChild(rowBars);
+                rowsContainer.appendChild(row);
+            });
+
+            ganttBody.appendChild(rowsContainer);
+            ganttContainer.appendChild(ganttBody);
+
+            // Add event listeners for zoom controls
+            document.querySelectorAll('.gantt-zoom-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.gantt-zoom-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.updateGanttChart(state.allTasks);
+                });
+            });
+        },
+
+        generateDayTimescale(timescale, minDate, maxDate, dayWidth) {
+            const currentDate = new Date(minDate);
+
+            // Month header
+            const monthHeader = document.createElement('div');
+            monthHeader.className = 'gantt-timescale-header';
+
+            const periodHeader = document.createElement('div');
+            periodHeader.className = 'gantt-timescale-period';
+            periodHeader.textContent = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            monthHeader.appendChild(periodHeader);
+
+            // Days container
+            const daysContainer = document.createElement('div');
+            daysContainer.className = 'gantt-timescale-days';
+
+            // Add days until maxDate
+            while (currentDate <= maxDate) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'gantt-timescale-day';
+                dayElement.style.width = `${dayWidth}px`;
+                dayElement.textContent = currentDate.getDate();
+                daysContainer.appendChild(dayElement);
+
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            monthHeader.appendChild(daysContainer);
+            timescale.appendChild(monthHeader);
+        },
+
+        generateWeekTimescale(timescale, minDate, maxDate, dayWidth) {
+            const currentDate = new Date(minDate);
+            currentDate.setDate(1); // Start from first day of month
+
+            while (currentDate <= maxDate) {
+                const month = currentDate.toLocaleDateString('es-ES', { month: 'short' });
+                const year = currentDate.getFullYear();
+
+                // Month header
+                const monthHeader = document.createElement('div');
+                monthHeader.className = 'gantt-timescale-header';
+
+                const periodHeader = document.createElement('div');
+                periodHeader.className = 'gantt-timescale-period';
+                periodHeader.textContent = `${month} ${year}`;
+                monthHeader.appendChild(periodHeader);
+
+                // Weeks container
+                const weeksContainer = document.createElement('div');
+                weeksContainer.className = 'gantt-timescale-days';
+
+                // Get weeks in month
+                const firstDay = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    1
+                );
+
+                const lastDay = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth() + 1,
+                    0
+                );
+
+                const weeks = Math.ceil((lastDay.getDate() + firstDay.getDay()) / 7);
+
+                // Add weeks
+                for (let week = 1; week <= weeks; week++) {
+                    const weekElement = document.createElement('div');
+                    weekElement.className = 'gantt-timescale-day';
+                    weekElement.style.width = `${dayWidth * 7}px`;
+                    weekElement.textContent = `Sem ${week}`;
+                    weeksContainer.appendChild(weekElement);
+                }
+
+                monthHeader.appendChild(weeksContainer);
+                timescale.appendChild(monthHeader);
+
+                // Move to next month
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+        },
+
+        generateMonthTimescale(timescale, minDate, maxDate, dayWidth) {
+            const currentDate = new Date(minDate);
+            currentDate.setDate(1); // Start from first day of month
+
+            while (currentDate <= maxDate) {
+                const month = currentDate.toLocaleDateString('es-ES', { month: 'short' });
+                const year = currentDate.getFullYear();
+
+                // Month header
+                const monthHeader = document.createElement('div');
+                monthHeader.className = 'gantt-timescale-header';
+
+                const periodHeader = document.createElement('div');
+                periodHeader.className = 'gantt-timescale-period';
+                periodHeader.textContent = `${month} ${year}`;
+                monthHeader.appendChild(periodHeader);
+
+                // Month container
+                const monthContainer = document.createElement('div');
+                monthContainer.className = 'gantt-timescale-days';
+
+                // Add month
+                const monthElement = document.createElement('div');
+                monthElement.className = 'gantt-timescale-day';
+
+                // Calculate days in month
+                const daysInMonth = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth() + 1,
+                    0
+                ).getDate();
+
+                monthElement.style.width = `${daysInMonth * dayWidth}px`;
+                monthElement.textContent = month;
+                monthContainer.appendChild(monthElement);
+
+                monthHeader.appendChild(monthContainer);
+                timescale.appendChild(monthHeader);
+
+                // Move to next month
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+        },
+
+        exportGanttToPDF() {
+            const { jsPDF } = window.jspdf;
+            const ganttChart = document.getElementById('gantt-chart');
+
+            // Calculate the width needed for the PDF
+            const width = ganttChart.scrollWidth;
+            const height = ganttChart.scrollHeight;
+
+            // Create a PDF with the appropriate dimensions
+            const pdf = new jsPDF({
+                orientation: width > height ? 'landscape' : 'portrait',
+                unit: 'px',
+                format: [width, height]
+            });
+
+            // Use html2canvas to capture the Gantt chart
+            html2canvas(ganttChart).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+                pdf.save('diagrama-gantt.pdf');
+            });
+        },
+
+        exportChartToPDF(chartId, filename) {
+            const { jsPDF } = window.jspdf;
+            const chartCanvas = document.getElementById(chartId);
+
+            if (!chartCanvas) {
+                utils.showAlert('No se pudo encontrar el gráfico', 'error');
+                return;
+            }
+
+            // Create a PDF
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm'
+            });
+
+            // Convert to image and add to PDF
+            const imgData = chartCanvas.toDataURL('image/png');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth() - 20;
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+            pdf.save(filename);
+        },
+
+        updateStats() {
+            if (!state.allTasks.length) return;
+
+            const pending = state.allTasks.filter(t => t.estado === 'pendiente').length;
+            const inProgress = state.allTasks.filter(t => t.estado === 'en_progreso').length;
+            const completed = state.allTasks.filter(t => t.estado === 'completada').length;
+            const rejected = state.allTasks.filter(t => t.estado === 'rechazada').length;
+            const approved = state.allTasks.filter(t => t.estado === 'aprobada').length;
+
+            if (elements.stats.pending) elements.stats.pending.textContent = pending;
+            if (elements.stats.inProgress) elements.stats.inProgress.textContent = inProgress;
+            if (elements.stats.completed) elements.stats.completed.textContent = completed;
+            if (elements.stats.rejected) elements.stats.rejected.textContent = rejected;
+            if (elements.stats.approved) elements.stats.approved.textContent = approved;
+        },
+
+        getStatusColor(status) {
+            const colors = {
+                'pendiente': '#9CA3AF',
+                'en_progreso': '#3B82F6',
+                'completada': '#10B981',
+                'rechazada': '#EF4444',
+                'aprobada': '#8B5CF6'
+            };
+            return colors[status] || '#9CA3AF';
+        },
+
+        async showTaskDetailsModal(taskId) {
+            try {
+                const task = await api.getTask(taskId);
+                state.currentTaskDetails = task;
+
+                // Update modal content
+                if (elements.modals.taskDetails.name) elements.modals.taskDetails.name.textContent = task.titulo;
+                if (elements.modals.taskDetails.description) {
+                    elements.modals.taskDetails.description.textContent = task.descripcion || 'Sin descripción';
+                }
+                if (elements.modals.taskDetails.status) {
+                    elements.modals.taskDetails.status.textContent = task.get_estado_display;
+                    elements.modals.taskDetails.status.className = `status-badge status-${task.estado}`;
+                }
+                if (elements.modals.taskDetails.priority) {
+                    elements.modals.taskDetails.priority.textContent = task.get_prioridad_display;
+                    elements.modals.taskDetails.priority.className = `priority-badge priority-${task.prioridad}`;
+                }
+                if (elements.modals.taskDetails.assignee) elements.modals.taskDetails.assignee.textContent = task.asignado_a ? task.asignado_a.nombre_completo : 'Sin asignar';
+                if (elements.modals.taskDetails.dueDate) elements.modals.taskDetails.dueDate.textContent = utils.formatDate(task.fecha_tope);
+                if (elements.modals.taskDetails.created) elements.modals.taskDetails.created.textContent = utils.formatDate(task.fecha_creacion);
+
+                // Load documents
+                this.loadTaskDocuments(task);
+
+                // Load comments
+                this.loadTaskComments(task);
+
+                // Show modal
+                utils.showModal('taskDetails');
+            } catch (error) {
+                console.error('Error al cargar detalles de tarea:', error);
+                utils.showAlert('Error al cargar los detalles de la tarea', 'error');
+            }
+        },
+
+        loadTaskDocuments(task) {
+            if (!elements.modals.taskDetails.documentsList) return;
+
+            elements.modals.taskDetails.documentsList.innerHTML = task.documentos && task.documentos.length > 0 ?
+                task.documentos.map(doc => `
+                    <div class="document-item">
+                        <div>
+                            <div class="flex items-center">
+                                <i class="fas fa-file-alt text-gray-400 mr-2"></i>
+                                <span class="text-sm">${doc.nombre}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                ${utils.formatDateTime(doc.fecha_subido)} • ${utils.formatFileSize(doc.tamanio || 0)}
+                            </div>
+                        </div>
+                        <a href="${doc.archivo}" download class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                `).join('') : '<div class="text-sm text-gray-500 py-4 text-center">No hay documentos adjuntos</div>';
+        },
+
+        loadTaskComments(task) {
+            if (!elements.modals.taskDetails.commentsList) return;
+
+            elements.modals.taskDetails.commentsList.innerHTML = task.comentarios && task.comentarios.length > 0 ?
+                task.comentarios.map(comment => `
+                    <div class="comment-item">
+                        <div class="comment-content">
+                            <div class="text-sm">${comment.contenido}</div>
+                            <div class="comment-meta">
+                                <span class="font-medium">${comment.usuario.nombre_completo}</span> •
+                                <span>${utils.formatDateTime(comment.fecha_creacion)}</span>
+                            </div>
+                            ${comment.archivos && comment.archivos.length > 0 ? `
+                                <div class="mt-2">
+                                    ${comment.archivos.map(archivo => `
+                                        <div class="flex items-center text-xs text-blue-500">
+                                            <i class="fas fa-paperclip mr-1"></i>
+                                            <a href="${archivo.archivo}" download class="hover:underline">${archivo.nombre}</a>
+                                            <span class="text-gray-500 ml-2">(${utils.formatFileSize(archivo.tamanio || 0)})</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-sm text-gray-500 py-4 text-center">No hay comentarios</div>';
+        },
+
+        showDocumentModal(taskId) {
+            if (elements.modals.document.tareaId) {
+                elements.modals.document.tareaId.value = taskId;
+            }
+            utils.showModal('document');
+        },
+
+        showCommentModal(taskId) {
+            if (elements.modals.comment.tareaId) {
+                elements.modals.comment.tareaId.value = taskId;
+            }
+            utils.showModal('comment');
+        },
+
+        showTaskModal() {
+            // Reset form
+            elements.modals.task.form.reset();
+            elements.modals.task.title.textContent = 'Nueva Tarea';
+            elements.modals.task.id.value = '';
+            utils.showModal('task');
+        },
+
+        async showEditTaskModal(taskId) {
+            try {
+                const task = await api.getTask(taskId);
+
+                // Fill form
+                elements.modals.task.title.textContent = 'Editar Tarea';
+                elements.modals.task.id.value = task.id;
+                elements.modals.task.titulo.value = task.titulo;
+                elements.modals.task.descripcion.value = task.descripcion || '';
+                elements.modals.task.prioridad.value = task.prioridad;
+                elements.modals.task.estado.value = task.estado;
+                elements.modals.task.asignado.value = task.asignado_a ? task.asignado_a.id : '';
+
+                if (task.fecha_tope) {
+                    const date = new Date(task.fecha_tope);
+                    elements.modals.task.fechaTope.value = date.toISOString().slice(0, 16);
+                }
+
+                utils.showModal('task');
+            } catch (error) {
+                utils.showAlert('Error al cargar la tarea', 'error');
+            }
+        },
+
+        async handleTaskFormSubmit() {
+            // Verificar permisos antes de enviar
+            if (!state.isProjectLeader) {
+                utils.showPermissionError();
+                return;
+            }
+
+            const form = elements.modals.task.form;
+            const formData = new FormData(form);
+            const taskData = Object.fromEntries(formData.entries());
+
+            try {
+                let response;
+                if (taskData.id) {
+                    // Update existing task
+                    response = await api.updateTask(taskData.id, taskData);
+                } else {
+                    // Create new task
+                    response = await api.createTask(taskData);
+                }
+
+                if (response.success) {
+                    utils.showAlert(taskData.id ? 'Tarea actualizada' : 'Tarea creada');
+                    utils.hideModal('task');
+                    this.loadTasks();
+                } else {
+                    utils.showAlert(response.error || 'Error al guardar', 'error');
+                }
+            } catch (error) {
+                console.error('Error al guardar la tarea:', error);
+                // El mensaje de error ya se muestra en la función request
+            }
+        },
+
+showConfirmDeleteModal(taskId, taskTitle) {
+    // Limpiar eventos anteriores
+    const oldButton = document.getElementById('confirm-delete-button');
+    if (oldButton) {
+        oldButton.replaceWith(oldButton.cloneNode(true));
+    }
+
+    // Actualizar contenido
+    state.currentTaskId = taskId;
+    if (elements.modals.confirmDelete.title) {
+        elements.modals.confirmDelete.title.textContent = `Eliminar: ${taskTitle}`;
+    }
+    if (elements.modals.confirmDelete.message) {
+        elements.modals.confirmDelete.message.textContent =
+            `¿Estás seguro de eliminar la tarea "${taskTitle}"? Esta acción no se puede deshacer.`;
+    }
+
+    // Configurar nuevo evento
+    const confirmButton = document.getElementById('confirm-delete-button');
+    if (confirmButton) {
+        confirmButton.onclick = async () => {
+            await views.deleteTask(taskId);
+        };
+    }
+
+    utils.showModal('confirmDelete');
+},
+
+async deleteTask(taskId) {
+    // Verificar permisos
+    if (!state.isProjectLeader) {
+        utils.showPermissionError();
+        utils.hideModal('confirmDelete');
+        return;
+    }
+
+    try {
+        utils.showLoading();
+        const response = await api.deleteTask(taskId);
+
+        // Verificar la respuesta
+        if (response && (response.success || response.status === 'success')) {
+            utils.showAlert('Tarea eliminada correctamente');
+            await this.loadTasks(); // Recargar las tareas
+        } else {
+            // Manejar diferentes formatos de respuesta
+            const errorMsg = response?.error || response?.message || 'Error al eliminar la tarea';
+            utils.showAlert(errorMsg, 'error');
+        }
+    } catch (error) {
+        console.error('Error al eliminar tarea:', error);
+        utils.showAlert(error.message || 'Error al eliminar la tarea', 'error');
+    } finally {
+        utils.hideLoading();
+        utils.hideModal('confirmDelete');
+    }
+}
+    };
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', () => {
+        views.init();
+    });
+</script>
+
+{% endblock %}

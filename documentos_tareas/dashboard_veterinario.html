@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PorcinoPro - Veterinario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .horizontal-nav {
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: thin;
+            scrollbar-color: #16a34a #f0fdf4;
+        }
+        
+        .horizontal-nav::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .horizontal-nav::-webkit-scrollbar-thumb {
+            background-color: #16a34a;
+            border-radius: 3px;
+        }
+        
+        .horizontal-nav::-webkit-scrollbar-track {
+            background-color: #f0fdf4;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .nav-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item:hover {
+            background-color: rgba(34, 197, 94, 0.1);
+        }
+        
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background-color: #22c55e;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        /* Estilos para tabs */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: #22c55e;
+            color: #22c55e;
+            font-weight: 600;
+        }
+        
+        /* Estilo para el modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 80%;
+            max-width: 800px;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <!-- Horizontal Navbar -->
+    <div class="bg-gradient-to-r from-primary-700 to-primary-600 text-white shadow-lg sticky top-0 z-10">
+        <div class="container mx-auto px-4">
+            <!-- Top Bar -->
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <img src="https://cdn-icons-png.flaticon.com/512/685/685388.png" alt="Logo" class="h-10 w-10">
+                        <span class="ml-3 text-xl font-bold">PorcinoPro</span>
+                    </div>
+                    <div class="hidden md:block relative">
+                        <input class="bg-primary-500 text-white placeholder-primary-200 rounded-full px-4 py-2 pl-10 focus:outline-none w-64 focus:ring-2 focus:ring-primary-300" placeholder="Buscar cerdo..." type="text"/>
+                        <i class="fas fa-search absolute left-3 top-3 text-primary-200"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="flex space-x-6">
+                        <div class="relative">
+                            <i class="fas fa-bell text-primary-200 hover:text-white cursor-pointer text-lg"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">5</span>
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-envelope text-primary-200 hover:text-white cursor-pointer text-lg"></i>
+                            <span class="absolute -top-1 -right-1 bg-primary-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <img alt="User avatar" class="rounded-full h-9 w-9 border-2 border-primary-300" src="https://randomuser.me/api/portraits/women/44.jpg"/>
+                        <div class="hidden md:block">
+                            <p class="text-sm font-medium">Dra. Martínez</p>
+                            <p class="text-xs text-primary-200">Veterinaria</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="horizontal-nav py-1">
+                <div class="flex space-x-1 py-2">
+                    <a href="#" class="nav-item active inline-flex flex-col items-center px-5 py-2 text-white rounded-lg mx-1">
+                        <i class="fas fa-clipboard-list text-lg"></i>
+                        <span class="mt-1 text-xs">Registros</span>
+                    </a>
+                    <a href="#" class="nav-item inline-flex flex-col items-center px-5 py-2 text-primary-100 hover:text-white rounded-lg mx-1">
+                        <i class="fas fa-piggy-bank text-lg"></i>
+                        <span class="mt-1 text-xs">Inventario</span>
+                    </a>
+                    <a href="#" class="nav-item inline-flex flex-col items-center px-5 py-2 text-primary-100 hover:text-white rounded-lg mx-1">
+                        <i class="fas fa-syringe text-lg"></i>
+                        <span class="mt-1 text-xs">Vacunación</span>
+                    </a>
+                    <a href="#" class="nav-item inline-flex flex-col items-center px-5 py-2 text-primary-100 hover:text-white rounded-lg mx-1">
+                        <i class="fas fa-heartbeat text-lg"></i>
+                        <span class="mt-1 text-xs">Reproducción</span>
+                    </a>
+                    <a href="#" class="nav-item inline-flex flex-col items-center px-5 py-2 text-primary-100 hover:text-white rounded-lg mx-1">
+                        <i class="fas fa-exchange-alt text-lg"></i>
+                        <span class="mt-1 text-xs">Traslados</span>
+                    </a>
+                    <a href="#" class="nav-item inline-flex flex-col items-center px-5 py-2 text-primary-100 hover:text-white rounded-lg mx-1">
+                        <i class="fas fa-chart-line text-lg"></i>
+                        <span class="mt-1 text-xs">Reportes</span>
+                    </a>
+                    <a href="#" class="nav-item inline-flex flex-col items-center px-5 py-2 text-primary-100 hover:text-white rounded-lg mx-1">
+                        <i class="fas fa-cog text-lg"></i>
+                        <span class="mt-1 text-xs">Configuración</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Panel de Veterinaria</h1>
+                <p class="text-gray-500 text-sm">Gestión de salud y reproducción porcina</p>
+            </div>
+            <div class="flex space-x-2 mt-3 md:mt-0">
+                <button onclick="openModal('new-record')" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-plus mr-2"></i>Nuevo Registro
+                </button>
+                <button class="bg-white border border-gray-200 hover:border-primary-300 text-gray-700 hover:text-primary-700 px-4 py-2 rounded-lg flex items-center transition duration-300">
+                    <i class="fas fa-print mr-2"></i>Imprimir
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button class="tab-button active" onclick="openTab(event, 'pigs-list')">
+                <i class="fas fa-list mr-2"></i>Listado de Cerdos
+            </button>
+            <button class="tab-button" onclick="openTab(event, 'reproduction')">
+                <i class="fas fa-heartbeat mr-2"></i>Ciclo Reproductivo
+            </button>
+            <button class="tab-button" onclick="openTab(event, 'vaccines')">
+                <i class="fas fa-syringe mr-2"></i>Registro de Vacunas
+            </button>
+            <button class="tab-button" onclick="openTab(event, 'transfers')">
+                <i class="fas fa-exchange-alt mr-2"></i>Solicitud de Traslados
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="pigs-list" class="tab-content active">
+            <!-- Filtros -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nave</label>
+                        <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>Todas</option>
+                            <option>Nave 1 - Maternidad</option>
+                            <option>Nave 2 - Crecimiento</option>
+                            <option>Nave 3 - Engorde</option>
+                            <option>Nave 4 - Reproductores</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                        <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>Todos</option>
+                            <option>Activos</option>
+                            <option>En tratamiento</option>
+                            <option>Gestantes</option>
+                            <option>En destete</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rango de edad</label>
+                        <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>Todos</option>
+                            <option>0-30 días</option>
+                            <option>1-3 meses</option>
+                            <option>3-6 meses</option>
+                            <option>6+ meses</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center">
+                            <i class="fas fa-filter mr-2"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listado de cerdos -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Raza</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Edad</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peso (kg)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nave</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0452</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Rosita</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Landrace</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2 años 3 meses</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">185</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 1 - Maternidad</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Gestante</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('pig-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button onclick="openModal('vaccine-record')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="fas fa-syringe"></i></button>
+                                    <button onclick="openModal('reproduction-record')" class="text-purple-600 hover:text-purple-900"><i class="fas fa-heartbeat"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0789</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Panceta</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Duroc</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1 año 8 meses</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">210</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 4 - Reproductores</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">Activo</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('pig-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button onclick="openModal('vaccine-record')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="fas fa-syringe"></i></button>
+                                    <button onclick="openModal('reproduction-record')" class="text-purple-600 hover:text-purple-900"><i class="fas fa-heartbeat"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-1123</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Chicharrón</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Pietrain</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">4 meses</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">65</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 2 - Crecimiento</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">En tratamiento</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('pig-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button onclick="openModal('vaccine-record')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="fas fa-syringe"></i></button>
+                                    <button onclick="openModal('reproduction-record')" class="text-purple-600 hover:text-purple-900"><i class="fas fa-heartbeat"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-1567</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Tocino</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Large White</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3 semanas</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">8</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 1 - Maternidad</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 font-medium">En destete</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('pig-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button onclick="openModal('vaccine-record')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="fas fa-syringe"></i></button>
+                                    <button onclick="openModal('reproduction-record')" class="text-purple-600 hover:text-purple-900"><i class="fas fa-heartbeat"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-1890</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Chorizo</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Duroc</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">5 meses</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">78</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 3 - Engorde</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Activo</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('pig-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button onclick="openModal('vaccine-record')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="fas fa-syringe"></i></button>
+                                    <button onclick="openModal('reproduction-record')" class="text-purple-600 hover:text-purple-900"><i class="fas fa-heartbeat"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginación -->
+                <div class="flex items-center justify-between mt-4">
+                    <div class="text-sm text-gray-500">
+                        Mostrando <span class="font-medium">1</span> a <span class="font-medium">5</span> de <span class="font-medium">124</span> resultados
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Anterior
+                        </button>
+                        <button class="px-3 py-1 border border-primary-500 bg-primary-50 text-primary-600 rounded-lg text-sm font-medium">
+                            1
+                        </button>
+                        <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            2
+                        </button>
+                        <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            3
+                        </button>
+                        <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ciclo Reproductivo Tab -->
+        <div id="reproduction" class="tab-content">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">Cálculo de Fertilidad</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Índice de Fertilidad</h3>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-primary-700">82%</span>
+                            <span class="ml-2 text-sm text-gray-500 mb-1">(+5% vs mes anterior)</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p>Número de partos / Número de cubriciones</p>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Tasa de Concepción</h3>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-blue-700">78%</span>
+                            <span class="ml-2 text-sm text-gray-500 mb-1">(+3% vs mes anterior)</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p>Número de gestaciones / Número de cubriciones</p>
+                        </div>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Tasa de Parto</h3>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-purple-700">91%</span>
+                            <span class="ml-2 text-sm text-gray-500 mb-1">(+2% vs mes anterior)</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p>Número de partos / Número de gestaciones</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-800">Registro de Ciclo Reproductivo</h2>
+                    <button onclick="openModal('new-reproduction')" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i>Nuevo Registro
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cerda</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Último Celo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cubrición</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnóstico Gestación</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parto Previsto</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0452 - Rosita</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">15/05/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">18/05/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">02/06/2023 (+)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/09/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Gestante</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('reproduction-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0678 - Lola</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">01/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">04/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">20/06/2023 (-)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">En celo</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('reproduction-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0321 - Pepa</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/04/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">13/04/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">28/04/2023 (+)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">05/08/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Gestante</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('reproduction-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0897 - Manuela</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">22/05/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">25/05/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">09/06/2023 (+)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">16/09/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Gestante</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('reproduction-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registro de Vacunas Tab -->
+        <div id="vaccines" class="tab-content">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-800">Registro de Vacunación</h2>
+                    <button onclick="openModal('new-vaccine')" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i>Nuevo Registro
+                    </button>
+                </div>
+                
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-xl border border-gray-200">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Próximas Vacunas</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">PP-1123 - Chicharrón</p>
+                                    <p class="text-xs text-gray-500">Vacuna contra PPC - Vence hoy</p>
+                                </div>
+                                <button class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-syringe"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">PP-1567 - Tocino</p>
+                                    <p class="text-xs text-gray-500">Vacuna contra Parvovirus - Vence en 2 días</p>
+                                </div>
+                                <button class="text-yellow-600 hover:text-yellow-800">
+                                    <i class="fas fa-syringe"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">Lote 4 - 12 cerdos</p>
+                                    <p class="text-xs text-gray-500">Vacuna contra E. coli - Vence en 5 días</p>
+                                </div>
+                                <button class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-syringe"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-xl border border-gray-200">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Calculadora de Dosis</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Medicamento/Vacuna</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                    <option>Seleccione...</option>
+                                    <option>Vacuna contra PPC</option>
+                                    <option>Vacuna contra Parvovirus</option>
+                                    <option>Vacuna contra E. coli</option>
+                                    <option>Vacuna contra Enfermedad de Aujeszky</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Peso del animal (kg)</label>
+                                <input type="number" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Ej. 85">
+                            </div>
+                            <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg w-full">
+                                Calcular Dosis
+                            </button>
+                            <div class="bg-green-50 p-3 rounded-lg mt-2 hidden" id="dosis-result">
+                                <p class="text-sm font-medium text-gray-800">Dosis recomendada:</p>
+                                <p class="text-lg font-bold text-primary-700">2.5 ml</p>
+                                <p class="text-xs text-gray-500 mt-1">Aplicar vía intramuscular cada 72 horas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Animal/Lote</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vacuna/Medicamento</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dosis</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Próxima Dosis</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veterinario</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">15/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0452 - Rosita</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Vacuna contra PPC</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2 ml</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">15/09/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Dra. Martínez</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('vaccine-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Lote 3 - 18 cerdos</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Vacuna contra E. coli</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1.5 ml/animal</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/07/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Dr. González</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('vaccine-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">05/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0789 - Panceta</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Vacuna contra Parvovirus</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3 ml</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">05/09/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Dra. Martínez</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('vaccine-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">01/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-1123 - Chicharrón</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">Antibiótico - Oxitetraciclina</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">5 mg/kg</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">04/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Dr. López</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('vaccine-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solicitud de Traslados Tab -->
+        <div id="transfers" class="tab-content">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-800">Solicitud de Traslados</h2>
+                    <button onclick="openModal('new-transfer')" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i>Nueva Solicitud
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white p-4 rounded-xl border border-gray-200">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Traslados Pendientes</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">PP-0452 - Rosita</p>
+                                    <p class="text-xs text-gray-500">Maternidad → Gestación</p>
+                                </div>
+                                <button class="text-yellow-600 hover:text-yellow-800">
+                                    <i class="fas fa-file-alt"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">Lote 5 - 8 cerdos</p>
+                                    <p class="text-xs text-gray-500">Crecimiento → Engorde</p>
+                                </div>
+                                <button class="text-yellow-600 hover:text-yellow-800">
+                                    <i class="fas fa-file-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-xl border border-gray-200">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Nuevo Traslado</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Animal/Lote</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                    <option>Seleccione...</option>
+                                    <option>PP-0452 - Rosita</option>
+                                    <option>PP-0789 - Panceta</option>
+                                    <option>PP-1123 - Chicharrón</option>
+                                    <option>Lote 4 - 12 cerdos</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nave Origen</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" disabled>
+                                    <option>Nave 1 - Maternidad</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nave Destino</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                    <option>Seleccione...</option>
+                                    <option>Nave 2 - Crecimiento</option>
+                                    <option>Nave 3 - Engorde</option>
+                                    <option>Nave 4 - Reproductores</option>
+                                </select>
+                            </div>
+                            <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg w-full">
+                                Generar Acta
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-xl border border-gray-200">
+                        <h3 class="text-md font-medium text-gray-800 mb-3">Historial Reciente</h3>
+                        <div class="space-y-3">
+                            <div class="p-3 border-b border-gray-100">
+                                <p class="text-sm font-medium">PP-1890 - Chorizo</p>
+                                <p class="text-xs text-gray-500">Crecimiento → Engorde</p>
+                                <p class="text-xs text-gray-400 mt-1">10/06/2023 - Completado</p>
+                            </div>
+                            <div class="p-3 border-b border-gray-100">
+                                <p class="text-sm font-medium">PP-1567 - Tocino</p>
+                                <p class="text-xs text-gray-500">Maternidad → Crecimiento</p>
+                                <p class="text-xs text-gray-400 mt-1">08/06/2023 - Completado</p>
+                            </div>
+                            <div class="p-3">
+                                <p class="text-sm font-medium">Lote 3 - 5 cerdos</p>
+                                <p class="text-xs text-gray-500">Engorde → Venta</p>
+                                <p class="text-xs text-gray-400 mt-1">05/06/2023 - Completado</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Animal/Lote</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origen</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-1890 - Chorizo</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 2 - Crecimiento</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 3 - Engorde</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Peso adecuado</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Completado</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('transfer-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">08/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-1567 - Tocino</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 1 - Maternidad</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 2 - Crecimiento</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Destete</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Completado</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('transfer-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">05/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Lote 3 - 5 cerdos</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 3 - Engorde</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Venta</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Peso de mercado</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Completado</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('transfer-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-green-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">02/06/2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PP-0452 - Rosita</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 4 - Reproductores</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Nave 1 - Maternidad</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gestación</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Completado</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="openModal('transfer-detail')" class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-eye"></i></button>
+                                    <button class="text-blue-600 hover:text-blue-900"><i class="fas fa-print"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Modal Detalle de Cerdo -->
+    <div id="pig-detail" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('pig-detail')">&times;</span>
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Detalle del Cerdo</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="col-span-1">
+                    <div class="bg-gray-100 rounded-lg p-4 flex flex-col items-center">
+                        <img src="https://cdn-icons-png.flaticon.com/512/685/685388.png" alt="Cerdo" class="h-32 w-32 mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">PP-0452 - Rosita</h3>
+                        <p class="text-sm text-gray-500">Landrace - Hembra</p>
+                    </div>
+                    
+                    <div class="mt-4 bg-white p-4 rounded-lg border border-gray-200">
+                        <h4 class="text-md font-medium text-gray-800 mb-2">Datos Básicos</h4>
+                        <div class="space-y-2">
+                            <p class="text-sm"><span class="font-medium text-gray-700">Edad:</span> 2 años 3 meses</p>
+                            <p class="text-sm"><span class="font-medium text-gray-700">Peso:</span> 185 kg</p>
+                            <p class="text-sm"><span class="font-medium text-gray-700">Nave:</span> Nave 1 - Maternidad</p>
+                            <p class="text-sm"><span class="font-medium text-gray-700">Corral:</span> B3</p>
+                            <p class="text-sm"><span class="font-medium text-gray-700">Fecha Nac.:</span> 15/03/2021</p>
+                            <p class="text-sm"><span class="font-medium text-gray-700">Estado:</span> <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">Gestante</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-span-2">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                        <h4 class="text-md font-medium text-gray-800 mb-2">Historial Reproductivo</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ciclo</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cubrición</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parto</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lechones</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peso Medio</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">1</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">15/06/2022</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">10/10/2022</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">12 (11 vivos)</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">1.4 kg</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">2</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">15/01/2023</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">10/05/2023</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">14 (13 vivos)</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">1.5 kg</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">3</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">18/05/2023</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">10/09/2023*</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">-</td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <h4 class="text-md font-medium text-gray-800 mb-2">Historial de Vacunación</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">Vacuna contra PPC</p>
+                                    <p class="text-xs text-gray-500">15/06/2023 - Próxima: 15/09/2023</p>
+                                </div>
+                                <button class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">Vacuna contra Parvovirus</p>
+                                    <p class="text-xs text-gray-500">15/03/2023 - Próxima: 15/06/2023</p>
+                                </div>
+                                <button class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium">Vacuna contra E. coli</p>
+                                    <p class="text-xs text-gray-500">10/01/2023 - Próxima: 10/04/2023</p>
+                                </div>
+                                <button class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeModal('pig-detail')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">
+                    Cerrar
+                </button>
+                <button onclick="openModal('vaccine-record')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-syringe mr-2"></i>Registrar Vacuna
+                </button>
+                <button onclick="openModal('reproduction-record')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-heartbeat mr-2"></i>Registro Reproductivo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registro de Vacuna -->
+    <div id="vaccine-record" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('vaccine-record')">&times;</span>
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Registro de Vacunación</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Animal/Lote</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>PP-0452 - Rosita</option>
+                        <option>PP-0789 - Panceta</option>
+                        <option>PP-1123 - Chicharrón</option>
+                        <option>Lote 4 - 12 cerdos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Aplicación</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Vacuna/Medicamento</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Seleccione...</option>
+                        <option>Vacuna contra PPC</option>
+                        <option>Vacuna contra Parvovirus</option>
+                        <option>Vacuna contra E. coli</option>
+                        <option>Vacuna contra Enfermedad de Aujeszky</option>
+                        <option>Antibiótico - Oxitetraciclina</option>
+                        <option>Antibiótico - Penicilina</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Lote/Número de Serie</label>
+                    <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Ej. L12345">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Dosis Aplicada</label>
+                    <div class="flex">
+                        <input type="text" class="w-full border border-gray-300 rounded-l-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Ej. 2.5">
+                        <select class="border border-l-0 border-gray-300 rounded-r-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>ml</option>
+                            <option>mg</option>
+                            <option>UI</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Vía de Administración</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Intramuscular</option>
+                        <option>Subcutánea</option>
+                        <option>Oral</option>
+                        <option>Intradérmica</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                    <textarea class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" rows="2" placeholder="Notas sobre la aplicación..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Próxima Aplicación</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+                    <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" value="Dra. Martínez" readonly>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeModal('vaccine-record')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">
+                    Cancelar
+                </button>
+                <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-save mr-2"></i>Guardar Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registro Reproductivo -->
+    <div id="reproduction-record" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('reproduction-record')">&times;</span>
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Registro Reproductivo</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cerda</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>PP-0452 - Rosita</option>
+                        <option>PP-0678 - Lola</option>
+                        <option>PP-0321 - Pepa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Registro</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Celo</option>
+                        <option>Cubrición/Monta</option>
+                        <option>Diagnóstico Gestación</option>
+                        <option>Parto</option>
+                        <option>Destete</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Verraco (si aplica)</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>No aplica</option>
+                        <option>PP-0789 - Panceta</option>
+                        <option>PP-0912 - Jamón</option>
+                    </select>
+                </div>
+                <div id="pregnancy-result" class="hidden md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Resultado Diagnóstico</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-primary-600" name="pregnancy" value="positive">
+                            <span class="ml-2">Positivo</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-primary-600" name="pregnancy" value="negative">
+                            <span class="ml-2">Negativo</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-primary-600" name="pregnancy" value="doubtful">
+                            <span class="ml-2">Dudoso</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="birth-details" class="hidden md:col-span-2 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">N° Lechones Nacidos</label>
+                        <input type="number" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">N° Lechones Vivos</label>
+                        <input type="number" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Peso Promedio (kg)</label>
+                        <input type="number" step="0.1" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Duración Parto (horas)</label>
+                        <input type="number" step="0.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                    <textarea class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" rows="3" placeholder="Detalles del registro..."></textarea>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeModal('reproduction-record')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">
+                    Cancelar
+                </button>
+                <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-save mr-2"></i>Guardar Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Solicitud de Traslado -->
+    <div id="transfer-request" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('transfer-request')">&times;</span>
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Solicitud de Traslado</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Animal/Lote a Trasladar</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Seleccione...</option>
+                        <option>PP-0452 - Rosita</option>
+                        <option>PP-0789 - Panceta</option>
+                        <option>PP-1123 - Chicharrón</option>
+                        <option>Lote 4 - 12 cerdos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Traslado</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nave Origen</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Nave 1 - Maternidad</option>
+                        <option>Nave 2 - Crecimiento</option>
+                        <option>Nave 3 - Engorde</option>
+                        <option>Nave 4 - Reproductores</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nave Destino</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Nave 1 - Maternidad</option>
+                        <option>Nave 2 - Crecimiento</option>
+                        <option>Nave 3 - Engorde</option>
+                        <option>Nave 4 - Reproductores</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Motivo del Traslado</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Cambio de fase productiva</option>
+                        <option>Peso adecuado</option>
+                        <option>Reorganización de lotes</option>
+                        <option>Problemas de salud</option>
+                        <option>Venta</option>
+                        <option>Otro</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                    <textarea class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" rows="3" placeholder="Detalles del traslado..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+                    <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" value="Dra. Martínez" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Autorización</label>
+                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option>Pendiente</option>
+                        <option>Aprobado</option>
+                        <option>Rechazado</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeModal('transfer-request')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">
+                    Cancelar
+                </button>
+                <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-file-alt mr-2"></i>Generar Acta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para cambiar entre tabs
+        function openTab(evt, tabName) {
+            // Ocultar todos los tab-content
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // Desactivar todos los tab-button
+            const tabButtons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+            
+            // Mostrar el tab actual y activar el botón
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        // Funciones para manejar modales
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = "block";
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = "none";
+        }
+        
+        // Cerrar modal al hacer clic fuera del contenido
+        window.onclick = function(event) {
+            if (event.target.className === "modal") {
+                event.target.style.display = "none";
+            }
+        }
+        
+        // Mostrar campos específicos según tipo de registro reproductivo
+        document.querySelector('select[name="tipo-registro"]').addEventListener('change', function() {
+            const pregnancyResult = document.getElementById('pregnancy-result');
+            const birthDetails = document.getElementById('birth-details');
+            
+            if (this.value === 'Diagnóstico Gestación') {
+                pregnancyResult.classList.remove('hidden');
+                birthDetails.classList.add('hidden');
+            } else if (this.value === 'Parto') {
+                pregnancyResult.classList.add('hidden');
+                birthDetails.classList.remove('hidden');
+            } else {
+                pregnancyResult.classList.add('hidden');
+                birthDetails.classList.add('hidden');
+            }
+        });
+        
+        // Mostrar resultado de cálculo de dosis
+        document.querySelector('#vaccines button').addEventListener('click', function() {
+            document.getElementById('dosis-result').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkFlow - Iniciar Sesión</title>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind with Custom Config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        'blue-medium': '#5dade2'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'fade-in': 'fadeIn 1.5s ease-in-out',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+                            '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-secondary: #5dade2;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-field {
+            transition: all 0.3s ease;
+            border-radius: 0.375rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+            border-color: var(--color-primary);
+        }
+
+        .error-message {
+            animation: fadeIn 0.3s ease-in-out, shake 0.5s cubic-bezier(.36,.07,.19,.97);
+        }
+
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.1;
+            border-radius: 50%;
+            filter: blur(40px);
+        }
+
+        .shape-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--color-primary);
+            top: 10%;
+            left: 5%;
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .shape-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--color-secondary);
+            top: 60%;
+            left: 70%;
+            animation: float-reverse 18s ease-in-out infinite;
+        }
+
+        .shape-3 {
+            width: 200px;
+            height: 200px;
+            background: var(--color-primary);
+            top: 80%;
+            left: 20%;
+            animation: float 12s ease-in-out infinite;
+        }
+
+        .btn-hover-effect {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-hover-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+
+        .btn-hover-effect:hover::before {
+            left: 100%;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .login-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-50 min-h-screen flex items-center justify-center overflow-hidden relative">
+    <!-- Floating Background Shapes -->
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="login-container w-full max-w-md p-8 mx-4" data-aos="fade-up">
+        <!-- Logo con efecto hover -->
+        <div class="flex justify-center mb-8">
+            <a href="#" class="hover-scale transform transition-transform duration-300 hover:rotate-3">
+                <img src="{% static 'imagenes/milog.png' %}" class="h-16 w-auto rounded-xl shadow-sm" alt="WorkFlow Logo">
+            </a>
+        </div>
+
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">
+            <span class="gradient-text">Iniciar Sesión</span>
+        </h2>
+        <p class="text-center text-gray-500 mb-8">
+            Ingresa tus credenciales para acceder a tu cuenta
+        </p>
+
+        <!-- Mensajes de error generales -->
+        {% if form.non_field_errors %}
+            <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded error-message">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <p>{{ form.non_field_errors|join:", " }}</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <form class="space-y-6" method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- Campo Usuario -->
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-primary-500"></i>
+                    </div>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        class="input-field pl-10 block w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent {% if form.username.errors %}border-red-500 bg-red-50{% endif %}"
+                        placeholder="Ingresa tu usuario"
+                        value="{% if form.username.value %}{{ form.username.value }}{% endif %}"
+                    >
+                </div>
+                {% if form.username.errors %}
+                    <div class="mt-1 text-sm text-red-600 error-message">
+                        {% for error in form.username.errors %}
+                            <p><i class="fas fa-exclamation-circle mr-1"></i> {{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Campo Contraseña -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-primary-500"></i>
+                    </div>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="input-field pl-10 block w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent {% if form.password.errors %}border-red-500 bg-red-50{% endif %}"
+                        placeholder="Ingresa tu contraseña"
+                    >
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onclick="togglePasswordVisibility()">
+                        <i class="fas fa-eye text-primary-500 hover:text-primary-600" id="togglePasswordIcon"></i>
+                    </div>
+                </div>
+                {% if form.password.errors %}
+                    <div class="mt-1 text-sm text-red-600 error-message">
+                        {% for error in form.password.errors %}
+                            <p><i class="fas fa-exclamation-circle mr-1"></i> {{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Opciones adicionales -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input
+                        id="remember"
+                        name="remember"
+                        type="checkbox"
+                        class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    >
+                    <label for="remember" class="ml-2 block text-sm text-gray-700">
+                        Recordar sesión
+                    </label>
+                </div>
+                <div class="text-sm">
+                    <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+            </div>
+
+            <!-- Botón de submit -->
+            <div>
+                <button type="submit" class="btn-hover-effect w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-blue-medium hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300 transform hover:scale-105">
+                    Iniciar Sesión
+                    <i class="fas fa-sign-in-alt ml-2"></i>
+                </button>
+            </div>
+        </form>
+
+        <!-- Enlace a registro -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+                ¿No tienes una cuenta?
+                <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
+                    Regístrate
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const passwordField = document.getElementById('password');
+            const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+            const isPasswordVisible = passwordField.type === 'text';
+
+            if (isPasswordVisible) {
+                passwordField.type = 'password';
+                togglePasswordIcon.classList.remove('fa-eye-slash');
+                togglePasswordIcon.classList.add('fa-eye');
+            } else {
+                passwordField.type = 'text';
+                togglePasswordIcon.classList.remove('fa-eye');
+                togglePasswordIcon.classList.add('fa-eye-slash');
+            }
+        }
+
+        // Prevent icon click from stealing focus
+        document.getElementById('togglePasswordIcon').addEventListener('mousedown', function(e) {
+            e.preventDefault();
+        });
+
+        // Add shake effect to error fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const errorFields = document.querySelectorAll('.error-message');
+            errorFields.forEach(field => {
+                field.classList.add('animate-shake');
+            });
+        });
+    </script>
+
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true
+        });
+    </script>
+</body>
+</html>
