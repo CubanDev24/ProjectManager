@@ -28,7 +28,27 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['web-production-133db.up.railway.app',
                  'localhost',
+                 '127.0.0.1',
                  ]
+
+# Para proxies de Railway
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# Agrega tu dominio de Railway a estas listas
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.up.railway.app',
+    'https://*.railway.app',
+    'https://web-production-133db.up.railway.app/'
+    # Agrega aquí tu dominio personalizado si usas uno
+]
+
+# Configuración para cookies en entorno HTTPS
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 
 # Application definition
