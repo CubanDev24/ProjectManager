@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-738j4pu4jur^*^pt^*$=g6*nc(undgi-k4)b76_)g*ry#9y3=h
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['web-production-133db.up.railway.app',
+                 'localhost',
+                 ]
 
 
 # Application definition
@@ -146,3 +148,5 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 
 # Configuración de seguridad para iframes
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
