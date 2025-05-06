@@ -51,15 +51,20 @@ def crear_usuario(request):
 
 def registro(request):
     if request.method == 'POST':
-        form = RegistroForm(request.POST)
+        form = RegistroForm(request.POST, request.FILES)  # FILES para la imagen de perfil
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            # Si necesitas procesamiento adicional antes de guardar
+            user.save()
             login(request, user)
-            return redirect('home')  # Redirige a la página principal después del registro
+            return redirect('home')
     else:
         form = RegistroForm()
 
-    return render(request, 'usuarios/registro.html', {'form': form})
+    return render(request, 'usuarios/registro.html', {
+        'form': form,
+        'titulo': 'Registro de Usuario'
+    })
 
 
 @login_required

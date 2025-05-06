@@ -217,6 +217,33 @@
                 </div>
             </div>
 
+            <!-- Rol -->
+            <div>
+                <label for="id_rol" class="block text-xs font-medium text-gray-700 mb-1">Rol</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-primary-500 text-sm">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <select
+                        id="id_rol"
+                        name="rol"
+                        class="input-field pl-8 text-sm block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent {% if form.rol.errors %}border-red-500 bg-red-50{% endif %}"
+                        required
+                    >
+                        <option value="" disabled selected>Selecciona tu rol</option>
+                        <option value="jefe_proyectos">Jefe de Proyectos</option>
+                        <option value="desarrollador">Desarrollador</option>
+                    </select>
+                </div>
+                {% if form.rol.errors %}
+                    <div class="text-red-500 text-xs mt-1">
+                        {% for error in form.rol.errors %}
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
             <!-- Contraseña -->
             <div>
                 <label for="id_password1" class="block text-xs font-medium text-gray-700 mb-1">Contraseña</label>
